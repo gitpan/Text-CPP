@@ -494,9 +494,11 @@ extern unsigned char _cpp_trigraph_map[UCHAR_MAX + 1];
 #define CPP_PEDANTIC(PF) CPP_OPTION (PF, pedantic)
 #define CPP_WTRADITIONAL(PF) CPP_OPTION (PF, warn_traditional)
 
+#if 0
 /* In cpperror.c  */
 extern int _cpp_begin_message PARAMS ((cpp_reader *, int,
 				       unsigned int, unsigned int));
+#endif
 
 /* In cppmacro.c */
 extern void _cpp_free_definition	PARAMS ((cpp_hashnode *));

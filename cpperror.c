@@ -11,6 +11,7 @@
 
 
 
+#if 0
 static void print_location PARAMS ((cpp_reader *, unsigned int, unsigned int));
 
 /* Print the logical file location (LINE, COL) in preparation for a
@@ -45,6 +46,7 @@ print_location (pfile, line, col)
       fputc (' ', stderr);
     }
 }
+#endif
 
 /* Hacked out of _cpp_begin_message by Shevek. This contains the common
  * logic between the printf and the SV versions. */
@@ -92,6 +94,7 @@ _cpp_can_begin_message (pfile, code, line, column, levelp)
   return 1;
 }
 
+#if 0
 /* Set up for a diagnostic: print the file and line, bump the error
    counter, etc.  LINE is the logical line number; zero means to print
    at the location of the previously lexed token, which tends to be
@@ -113,6 +116,7 @@ _cpp_begin_message (pfile, code, line, column)
 		fputs (_("internal error: "), stderr);
 	return 1;
 }
+#endif
 
 
 

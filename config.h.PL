@@ -26,14 +26,11 @@ print OUT "#define HAVE_SYS_STAT_H 1\n" if $Config{i_sysstat};
 print OUT "#define HAVE_SYS_WAIT_H 1\n" if $Config{i_syswait};
 print OUT "#define HAVE_UNISTD_H 1\n" if $Config{i_unistd};
 
-if (($Config{i_systime} eq 'define') and
-	($Config{i_time} eq 'define')) {
+if ($Config{i_systime} && $Config{i_time}) {
 	print OUT "#define TIME_WITH_SYS_TIME 1\n";
 }
-else {
-	print OUT "#$Config{i_time} HAVE_TIME_H 1\n";
-	print OUT "#$Config{i_systime} HAVE_SYS_TIME_H 1\n";
-}
+print OUT "#define HAVE_TIME_H 1\n" if $Config{i_time};
+print OUT "#define HAVE_SYS_TIME_H 1\n" if $Config{i_systime};
 # print OUT "#define HAVE_STRSIGNAL 1\n" if $Config{i_foo} eq 'define';
 
 print OUT <<"EOF"
