@@ -20,6 +20,7 @@ _uu$
 
 ^local/
 test\.pl$
+temp\.pl$
 
 .cvsignore$
 removed-t/

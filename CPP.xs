@@ -29,10 +29,12 @@ struct _text_cpp {
 	CV					*cb_pragma;
 } *Text__CPP;
 
-#define EXPORT_INT(x) do { \
-				newCONSTSUB(stash, #x, newSViv(x)); \
-				av_push(export, newSVpv(#x, strlen(#x))); \
+#define EXPORT_INT_AS(n, v) do { \
+				newCONSTSUB(stash, n, newSViv(v)); \
+				av_push(export, newSVpv(n, strlen(n))); \
 					} while(0)
+
+#define EXPORT_INT(x) EXPORT_INT_AS(#x, x)
 
 
 MODULE = Text::CPP PACKAGE = Text::CPP
@@ -140,10 +142,20 @@ BOOT:
 	EXPORT_INT(CPP_N_UNSIGNED);
 	EXPORT_INT(CPP_N_IMAGINARY);
 
+	EXPORT_INT_AS("TF_PREV_WHITE", PREV_WHITE);
+	EXPORT_INT_AS("TF_DIGRAPH", DIGRAPH);
+	EXPORT_INT_AS("TF_STRINGIFY_ARG", STRINGIFY_ARG);
+	EXPORT_INT_AS("TF_PASTE_LEFT", PASTE_LEFT);
+	EXPORT_INT_AS("TF_NAMED_OP", NAMED_OP);
+	EXPORT_INT_AS("TF_NO_EXPAND", NO_EXPAND);
+	EXPORT_INT_AS("TF_BOL", BOL);
+
+	/*
 	EXPORT_INT(ST_INIT);
 	EXPORT_INT(ST_READ);
 	EXPORT_INT(ST_FINAL);
 	EXPORT_INT(ST_FAIL);
+	*/
 }
 
 SV *
@@ -198,17 +210,27 @@ token(self)
 		token = cpp_get_token(self->reader);
 		if (token->type == CPP_EOF) {
 			self->state = ST_FINAL;
-			XSRETURN_UNDEF;
+			if (GIMME_V == G_SCALAR)
+				XSRETURN_UNDEF;
+			else
+				XSRETURN_EMPTY;
 		}
-		sv = newSVpv(
-				cpp_token_as_text(self->reader, token),
-				cpp_token_len(token));
+		sv = newSVpv(cpp_token_as_text(self->reader, token), 0);
 		XPUSHs(sv_2mortal(sv));
 		if (GIMME_V == G_SCALAR)
 			XSRETURN(1);
 		XPUSHs(sv_2mortal(newSViv(token->type)));
 		XPUSHs(sv_2mortal(newSViv(token->flags)));
-		XSRETURN(3);
+		// XSRETURN(3);
+
+const char *
+type(self, type)
+	Text::CPP	self
+	int			type
+	CODE:
+		RETVAL = cpp_type2name(type);
+	OUTPUT:
+		RETVAL
 
 void
 tokens(self)
@@ -230,9 +252,7 @@ tokens(self)
 				break;
 			if (wa == G_VOID)
 				continue;
-			sv = newSVpv(
-					cpp_token_as_text(self->reader, token),
-					cpp_token_len(token));
+			sv = newSVpv(cpp_token_as_text(self->reader, token), 0);
 			if (wa == G_SCALAR)
 				av_push(av, sv);
 			else

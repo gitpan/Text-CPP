@@ -7,7 +7,7 @@ use Exporter;
 
 require DynaLoader;
 
-$VERSION = 0.02;
+$VERSION = 0.03;
 @ISA = qw(Exporter DynaLoader);
 @EXPORT_OK = ();
 %EXPORT_TAGS = (
@@ -43,15 +43,22 @@ preprocessor, and will not fork() or exec() any external process.
 
 =head1 USAGE
 
-Undecided.
+The following methods have been implemented, allowing the use of
+this module as a pure C preprocessor, or as a lexer for a C, C++
+or Assembler-like language.
 
-=item $reader->token
+=item my $text = $reader->token
+=item my ($text, $type, $flags) = $reader->token
 
 Return the next available preprocessed token.
 
 =item $reader->tokens
 
 Preprocess and return a list of tokens.
+
+=item $reader->type($type)
+
+Return a human readable name for a token.
 
 =item $reader->data
 
