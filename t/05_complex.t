@@ -1,8 +1,9 @@
 use strict;
+use warnings;
 use Test::More tests => 8;
 use Text::CPP qw(:all);
 
-my $reader = new Text::CPP(CLK_GNUC99);
+my $reader = new Text::CPP(Language => CLK_GNUC99);
 ok($reader, 'Created a reader');
 ok($reader->read("t/complex0.c"), 'Read a source file');
 my @token = $reader->token;

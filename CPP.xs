@@ -20,14 +20,19 @@ struct _text_cpp {
     struct cpp_reader	*reader;
 	unsigned int		 state;
 	SV					*user_data;
-	CV					*cb_file_change;
+	HV					*builtins;
+
 	CV					*cb_line_change;
+	CV					*cb_file_change;
+	CV					*cb_include;
 	CV					*cb_define;
 	CV					*cb_undef;
-	CV					*cb_include;
 	CV					*cb_ident;
-	CV					*cb_pragma;
+	CV					*cb_def_pragma;
+	CV					*cb_register_builtins;
 } *Text__CPP;
+
+static Text__CPP instance = NULL;
 
 #define EXPORT_INT_AS(n, v) do { \
 				newCONSTSUB(stash, n, newSViv(v)); \
@@ -35,6 +40,36 @@ struct _text_cpp {
 					} while(0)
 
 #define EXPORT_INT(x) EXPORT_INT_AS(#x, x)
+
+
+void
+cb_register_builtins(struct cpp_reader *reader)
+{
+	HV		*hv;
+	char	*key;
+	I32		 klen;
+	char	*val;
+	STRLEN	 vlen;
+	SV		*sv;
+	char	*buf;
+
+	hv = instance->builtins;		/* We use 'instance' */
+	if (!hv)
+		return;
+
+	hv_iterinit(hv);
+	while ((sv = hv_iternextsv(hv, &key, &klen))) {
+		if (!SvPOK(sv) && !SvIOK(sv))
+			croak("cb_register_builtins: value not string or integer");
+		val = SvPV(sv, vlen);
+		buf = alloca(klen + 1 + vlen + 1);
+		memcpy(buf, key, klen);
+		buf[klen] =  '=';
+		memcpy(&(buf[klen + 1]), val, vlen);
+		buf[klen + 1 + vlen] = '\0';
+		cpp_define(reader, buf);
+	}
+}
 
 
 MODULE = Text::CPP PACKAGE = Text::CPP
@@ -159,19 +194,27 @@ BOOT:
 }
 
 SV *
-new(class, lang)
+_create(class, lang, builtins)
 	const char *class
 	int			lang
+	HV *		builtins
 	CODE:
-		Text__CPP	self;
+		Text__CPP				 self;
+		struct cpp_callbacks	*cb;
+		if (instance)
+			croak("Please create only one Text::CPP at a time");
 		Newz(0, self, 1, struct _text_cpp);
 		self->reader = cpp_create_reader(lang);
 		self->state = ST_INIT;
 		self->user_data = newRV_noinc((SV *)newHV());
+		self->builtins = (HV *)SvREFCNT_inc((SV *)builtins);
+		cb = cpp_get_callbacks(self->reader);
+		cb->register_builtins = cb_register_builtins;
 		/* This is slightly uglier than just returning self as a
 		 * Text::CPP but does allow proper subclassing. */
 		RETVAL = newSV(0);
 		sv_setref_pv(RETVAL, class, (void *)self);
+		instance = self;
 	OUTPUT:
 		RETVAL
 
@@ -179,6 +222,7 @@ SV *
 data(self)
 	Text::CPP	self
 	CODE:
+		/* Re-mortalised by XS */
 		RETVAL = SvREFCNT_inc(self->user_data);
 	OUTPUT:
 		RETVAL
@@ -189,14 +233,13 @@ read(self, file)
 	const char *file
 	CODE:
 		ASSERT_INIT(self);
-		if (cpp_read_main_file(self->reader, file, NULL)) {
-			self->state = ST_READ;
-			RETVAL = &PL_sv_yes;
-		}
-		else {
+		if (!cpp_read_main_file(self->reader, file, NULL)) {
 			self->state = ST_FAIL;
-			RETVAL = &PL_sv_undef;
+			XSRETURN_UNDEF;
 		}
+		self->state = ST_READ;
+		cpp_finish_options(self->reader);
+		RETVAL = &PL_sv_yes;
 	OUTPUT:
 		RETVAL
 
@@ -206,6 +249,7 @@ token(self)
 	PPCODE:
 		const cpp_token	*token;
 		SV				*sv;
+		char			*text;
 		ASSERT_READ(self);
 		token = cpp_get_token(self->reader);
 		if (token->type == CPP_EOF) {
@@ -215,7 +259,23 @@ token(self)
 			else
 				XSRETURN_EMPTY;
 		}
-		sv = newSVpv(cpp_token_as_text(self->reader, token), 0);
+		/* This is ugly, but works for now. XXX I should split this
+		 * out into my own function for using in 'type'. */
+		switch(token->type) {
+			case CPP_EOF:
+				text = "<EOF>";
+				break;
+			case CPP_MACRO_ARG:
+				text = "<MACRO_ARG>";
+				break;
+			case CPP_PADDING:
+				text = "<PADDING>";
+				break;
+			default:
+				text = cpp_token_as_text(self->reader, token);
+				break;
+		}
+		sv = newSVpv(text, 0);
 		XPUSHs(sv_2mortal(sv));
 		if (GIMME_V == G_SCALAR)
 			XSRETURN(1);
@@ -303,4 +363,6 @@ DESTROY(self)
 		cpp_finish(self->reader, stderr);
 		cpp_destroy(self->reader);
 		SvREFCNT_dec(self->user_data);
+		SvREFCNT_dec(self->builtins);
 		Safefree(self);
+		instance = NULL;

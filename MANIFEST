@@ -51,5 +51,7 @@ t/02_basic.t
 t/03_inherit.t
 t/04_data.t
 t/05_complex.t
+t/06_builtin.t
+t/builtin0.c
 t/complex0.c
 typemap

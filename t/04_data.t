@@ -1,8 +1,9 @@
 use strict;
+use warnings;
 use Test::More tests => 7;
 use Text::CPP qw(:all);
 
-my $reader = new Text::CPP(CLK_GNUC99);
+my $reader = new Text::CPP(Language => CLK_GNUC99);
 ok($reader->data, 'Text::CPP has user data');
 ok(ref($reader->data) eq 'HASH', 'User data is a hashref');
 ok($reader->data->{foo} = 1, 'Set an item of user data');

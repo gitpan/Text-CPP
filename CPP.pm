@@ -7,7 +7,7 @@ use Exporter;
 
 require DynaLoader;
 
-$VERSION = 0.03;
+$VERSION = 0.04;
 @ISA = qw(Exporter DynaLoader);
 @EXPORT_OK = ();
 %EXPORT_TAGS = (
@@ -16,10 +16,17 @@ $VERSION = 0.03;
 
 bootstrap Text::CPP;
 
-#sub new {
-#	my $class = shift;
-#	my $self = ($#_ == 0) ? { %{ (shift) } } : { @_ };
-#}
+sub new {
+	my $class = shift;
+	my $self = ($#_ == 0) ? { %{ (shift) } } : { @_ };
+	my $language = (exists $self->{Language})
+					? $self->{Language}
+					: CLK_GNUC99();
+	my $builtins = (ref($self->{Builtins}) eq 'HASH')
+					? $self->{Builtins}
+					: { };
+	return Text::CPP::_create($class, $language,$builtins);
+}
 
 =head1 NAME
 
@@ -28,7 +35,13 @@ Text::CPP - A full C Preprocessor in XS
 =head1 SYNOPSIS
 
 	use Text::CPP;
-	my $reader = new Text::CPP(CLK_GNUC99);
+	my $reader = new Text::CPP(
+		Language	=> CLK_GNUC99,
+		Builtins	=> {
+			foo	=> 'this',
+			bar	=> 'that',
+		},
+	);
 	$reader->read("file.c");
 	while (my $token = $reader->token) {
 		print "Token: $token\n";
@@ -47,32 +60,87 @@ The following methods have been implemented, allowing the use of
 this module as a pure C preprocessor, or as a lexer for a C, C++
 or Assembler-like language.
 
-=item my $text = $reader->token
-=item my ($text, $type, $flags) = $reader->token
+=over 4
 
-Return the next available preprocessed token.
+=item new Text::CPP(...)
 
-=item $reader->tokens
+Takes a hash or hashref with the following possible keys:
 
-Preprocess and return a list of tokens.
+=over 4
+
+=item Language
+
+Defines the source language to preprocess and/or tokenise. It may
+be any of:
+
+=over 4
+
+=item CLK_GNUC89 - GNU C89
+
+=item CLK_GNUC99 - GNU C99
+
+=item CLK_STDC89 - Standard C89
+
+=item CLK_STDC94 - Standard C94
+
+=item CLK_STDC99 - Standard C99
+
+=item CLK_GNUCXX - GNU C++
+
+=item CLK_CXX98 - Standard C++ 98
+
+=item CLK_ASM - Assembler
+
+=back
+
+=item Builtins
+
+A hashref of predefined macros. The values must be strings or integers.
+Macros in this hash will be defined before preprocessing starts.
+
+=back
+
+=item $text = $reader->token
+
+=item ($text, $type, $flags) = $reader->token
+
+Return the next available preprocessed token. Some tokens are not
+stringifiable. These include tokens of type CPP_MACRO_ARG, CPP_PADDING
+and CPP_EOF. Text::CPP returns a dummy string in the 'text' field for
+these tokens. Tokens of type CPP_EOF should never actually be returned.
+
+=item @tokens = $reader->tokens
+
+Preprocess and return a list of tokens. This is approximately
+equivalent to:
+
+	push(@tokens, $_) while ($_ = $reader->token);
 
 =item $reader->type($type)
 
-Return a human readable name for a token.
+Return a human readable name for a token type, as returned by
+$reader->token.
 
 =item $reader->data
 
 Returns a hashref in which user data may be stored by subclasses.
+This hashref is created with a new Text::CPP object, and is ignored
+for all functional purposes. The user may do with it as he wishes.
+
+=back
 
 =head1 BUGS
 
-It may not be possible to instantiate multiple Text::CPP objects,
-since the underlying library does use many global variables. This is
-yet to be tested.
+It is not possible to instantiate multiple Text::CPP objects, since
+the underlying library uses many global variables.
 
-Memory for hash tables, etc is only freed when the reader is
-destroyed. If you create multiple readers then destroy one, this may
-free global tables and make the code fail.
+C99 may not implement variadic macros correctly according to the ISO
+standard. I must check this. If anyone knows, please tell me.
+
+=head1 CAVEATS
+
+Memory for hash tables, token names, etc is only freed when the reader
+is destroyed.
 
 =head1 SUPPORT
 
@@ -90,10 +158,11 @@ Mail the author at <cpan@anarres.org>
 Copyright (c) 2002 Shevek. All rights reserved.
 
 This program is free software; but parts of it have been borrowed
-from, or based on, parts of the GNU C Compiler version 3.3.2. You
-may therefore redistribute and/or modify this code under the terms of
-the GNU GENERAL PUBLIC LICENSE, but I am unable to release this code
-under the usual Perl license, because it includes the Artistic License.
+from, or based on, parts of the GNU C Compiler version 3.3.2. You may
+therefore redistribute and/or modify this code under the terms of the
+GNU GENERAL PUBLIC LICENSE. I am unable to release this code under the
+usual Perl license because that license includes the Artistic License,
+and I cannot rerelease GPL code under the Artistic License. Sorry.
 
 The full text of the license can be found in the
 COPYING file included with this module.
