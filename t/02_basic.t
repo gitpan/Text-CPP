@@ -1,6 +1,6 @@
 use strict;
 use warnings;
-use Test::More tests => 10;
+use Test::More tests => 15;
 use Text::CPP qw(:all);
 
 ok(Text::CPP::CLK_GNUC99, 'CLK_GNUC99 is defined in Text::CPP');
@@ -16,3 +16,17 @@ ok($reader->type(CPP_NAME) eq 'CPP_NAME', 'Text::CPP names tokens');
 ok($reader->errors == 0, 'No errors were recorded');
 $reader = undef;
 ok(1, 'Successfully freed the Text::CPP object');
+
+$reader = new Text::CPP(Language => "C");
+ok(defined $reader, 'Created a reader for "C"');
+$reader = undef;
+$reader = new Text::CPP(Language => "C++");
+ok(defined $reader, 'Created a reader for "C++"');
+$reader = undef;
+eval { $reader = new Text::CPP(Language => "Invalid") };
+ok($@ =~ /lang/, 'Got an error from "new"');
+ok(!defined $reader, 'Failed to create a reader for invalid language');
+$reader = undef;
+$reader = new Text::CPP;
+ok(defined $reader, 'Created a reader for the default language');
+$reader = undef;
