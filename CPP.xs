@@ -50,6 +50,11 @@ parse_options(struct cpp_reader *reader, HV *hv)
 {
 	struct cpp_options	*opts;
 	SV					**svp;
+	char				 *str;
+	STRLEN				  slen;
+	AV					 *av;
+	int					  alen;
+	int					  i;
 
 	if (!hv)
 		return;
@@ -59,6 +64,20 @@ parse_options(struct cpp_reader *reader, HV *hv)
 #define TEST_OPTION(k) (svp = hv_fetch(hv, k, strlen(k), FALSE))
 #define SET_OPTION(o, v) opts->o = (v)
 #define DO_OPTION(k, o, v) if (TEST_OPTION(k)) SET_OPTION(o, v)
+
+#define FOREACH_VALUE(name) \
+		if (SvROK(*svp) && SvTYPE(SvRV(*svp)) == SVt_PVAV) \
+			av = (AV *)SvRV(*svp); \
+		else \
+			croak("Argument to " name " must be an array"); \
+		alen = av_len(av) +1; \
+		for (i = 0; i < alen; i++) \
+			if ((svp = av_fetch(av, i, FALSE))) \
+				continue; \
+			else
+
+
+	/* Output related features */
 
 	DO_OPTION("DiscardComments", discard_comments, !!SvTRUE(*svp));
 		else
@@ -78,7 +97,31 @@ parse_options(struct cpp_reader *reader, HV *hv)
 		else
 	DO_OPTION("-P", no_line_commands, !!SvTRUE(*svp));
 
-	/* Handle: WarnAll */
+	/* Other features */
+
+	DO_OPTION("Remap", remap, !!SvTRUE(*svp));
+		else
+	DO_OPTION("-remap", remap, !!SvTRUE(*svp));
+
+	DO_OPTION("Trigraphs", trigraphs, !!SvTRUE(*svp));
+		else
+	DO_OPTION("-trigraphs", trigraphs, !!SvTRUE(*svp));
+
+	DO_OPTION("Traditional", traditional, !!SvTRUE(*svp));
+		else
+	DO_OPTION("-traditional", traditional, !!SvTRUE(*svp));
+
+	DO_OPTION("NoWarnings", inhibit_warnings, !!SvTRUE(*svp));
+		else
+	DO_OPTION("-w", inhibit_warnings, !!SvTRUE(*svp));
+
+	DO_OPTION("Verbose", inhibit_warnings, !!SvTRUE(*svp));
+		else
+	DO_OPTION("-v", inhibit_warnings, !!SvTRUE(*svp));
+
+	/* Warnings */
+	/* Handle: WarnAll WarnEndifLabels */
+
 	DO_OPTION("WarnComments", warn_comments, !!SvTRUE(*svp));
 		else
 	DO_OPTION("-Wcomment", warn_comments, !!SvTRUE(*svp));
@@ -88,8 +131,6 @@ parse_options(struct cpp_reader *reader, HV *hv)
 	DO_OPTION("WarnDeprecated", warn_deprecated, !!SvTRUE(*svp));
 		else
 	DO_OPTION("-Wdeprecated", warn_deprecated, !!SvTRUE(*svp));
-
-	/* Handle: WarnEndifLabels */
 
 	DO_OPTION("WarningsAreErrors", warnings_are_errors, !!SvTRUE(*svp));
 		else
@@ -123,8 +164,20 @@ parse_options(struct cpp_reader *reader, HV *hv)
 		else
 	DO_OPTION("-Wunused-macros", warn_unused_macros, !!SvTRUE(*svp));
 
-	/* -foperator-names -fpreprocessed -fshow-column -ftabstop
-	 * -lang-objc */
+	/* Error handling */
+
+	if (TEST_OPTION("PedanticErrors")||TEST_OPTION("-pedantic-errors")){
+		SET_OPTION(pedantic_errors, !!SvTRUE(*svp));
+		SET_OPTION(pedantic, !!SvTRUE(*svp));
+		SET_OPTION(warn_endif_labels, !!SvTRUE(*svp));
+	}
+	else if (TEST_OPTION("Pedantic") || TEST_OPTION("-pedantic")) {
+		SET_OPTION(pedantic, !!SvTRUE(*svp));
+		SET_OPTION(warn_endif_labels, !!SvTRUE(*svp));
+	}
+
+	/* Including and include path */
+	/* Do not handle: -iwithprefix-iwithprefixbefore */
 
 	DO_OPTION("NoStandardIncludes",
 					no_standard_includes, !!SvTRUE(*svp));
@@ -137,37 +190,54 @@ parse_options(struct cpp_reader *reader, HV *hv)
 	DO_OPTION("-nostdincplusplus",
 					no_standard_cplusplus_includes, !!SvTRUE(*svp));
 
-	if (TEST_OPTION("PedanticErrors")||TEST_OPTION("-pedantic-errors")){
-		SET_OPTION(pedantic_errors, !!SvTRUE(*svp));
-		SET_OPTION(pedantic, !!SvTRUE(*svp));
-		SET_OPTION(warn_endif_labels, !!SvTRUE(*svp));
-	}
-	else if (TEST_OPTION("Pedantic") || TEST_OPTION("-pedantic")) {
-		SET_OPTION(pedantic, !!SvTRUE(*svp));
-		SET_OPTION(warn_endif_labels, !!SvTRUE(*svp));
+	if (TEST_OPTION("IncludePrefix") || TEST_OPTION("-iprefix")) {
+		str = SvPV(*svp, slen);
+		SET_OPTION(include_prefix, str);
+		SET_OPTION(include_prefix_len, slen);
 	}
 
-	DO_OPTION("Remap", remap, !!SvTRUE(*svp));
-		else
-	DO_OPTION("-remap", remap, !!SvTRUE(*svp));
+	if (TEST_OPTION("SysRoot") || TEST_OPTION("-isysroot")) {
+		SET_OPTION(sysroot, SvPV_nolen(*svp));
+	}
 
-	DO_OPTION("Trigraphs", trigraphs, !!SvTRUE(*svp));
-		else
-	DO_OPTION("-trigraphs", trigraphs, !!SvTRUE(*svp));
+	if (TEST_OPTION("IncludePath") || TEST_OPTION("-I")) {
+		FOREACH_VALUE("IncludePath/-I") {
+			cpp_append_include_chain(reader, xstrdup(SvPV_nolen(*svp)),
+					0);
+		}
+	}
 
-	DO_OPTION("Traditional", traditional, !!SvTRUE(*svp));
-		else
-	DO_OPTION("-traditional", traditional, !!SvTRUE(*svp));
+	if (TEST_OPTION("SystemIncludePath") || TEST_OPTION("-isystem")) {
+		FOREACH_VALUE("SystemIncludePath/-isystem") {
+			cpp_append_include_chain(reader, xstrdup(SvPV_nolen(*svp)),
+					1);
+		}
+	}
 
-	DO_OPTION("NoWarnings", inhibit_warnings, !!SvTRUE(*svp));
-		else
-	DO_OPTION("-w", inhibit_warnings, !!SvTRUE(*svp));
+	if (TEST_OPTION("AfterIncludePath") || TEST_OPTION("-idirafter")) {
+		FOREACH_VALUE("AfterIncludePath/-idirafter") {
+			cpp_append_include_chain(reader, xstrdup(SvPV_nolen(*svp)),
+					2);
+		}
+	}
 
-	DO_OPTION("Verbose", inhibit_warnings, !!SvTRUE(*svp));
-		else
-	DO_OPTION("-v", inhibit_warnings, !!SvTRUE(*svp));
+	if (TEST_OPTION("Include") || TEST_OPTION("-include")) {
+		FOREACH_VALUE("PreInclude/-include") {
+			cpp_append_include_file(reader, SvPV_nolen(*svp));
+		}
+	}
 
-	/* -x -std -ansi -I- */
+	if (TEST_OPTION("IncludeMacros") || TEST_OPTION("-imacros")) {
+		FOREACH_VALUE("IncludeMacros/-imacros") {
+			cpp_append_imacros_file(reader, SvPV_nolen(*svp));
+		}
+	}
+
+	/* Everything else */
+	/* Handle: -foperator-names -fpreprocessed -fshow-column
+	 * -ftabstop -lang-objc -x -std -ansi -I- */
+
+	/* -D -A -U */
 }
 
 static void
@@ -188,7 +258,8 @@ cb_register_builtins(struct cpp_reader *reader)
 	hv_iterinit(hv);
 	while ((sv = hv_iternextsv(hv, &key, &klen))) {
 		if (!SvPOK(sv) && !SvIOK(sv))
-			croak("cb_register_builtins: value not string or integer");
+			croak("cb_register_builtins: builtin macro "
+							"value not string or integer");
 		val = SvPV(sv, vlen);
 		buf = alloca(klen + 1 + vlen + 1);
 		memcpy(buf, key, klen);

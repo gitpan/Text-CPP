@@ -2,12 +2,12 @@ package Text::CPP;
 
 use strict;
 use warnings;
-use vars qw($VERSION @ISA @EXPORT_OK %EXPORT_TAGS);
+use vars qw($VERSION @ISA @EXPORT_OK %EXPORT_TAGS %LANGUAGE);
 use Exporter;
 
 require DynaLoader;
 
-$VERSION = 0.07;
+$VERSION = 0.08;
 @ISA = qw(Exporter DynaLoader);
 @EXPORT_OK = ();
 %EXPORT_TAGS = (
@@ -16,9 +16,58 @@ $VERSION = 0.07;
 
 bootstrap Text::CPP;
 
+# Some of these choices are rather arbitrary
+%LANGUAGE = (
+		C				=> CLK_GNUC99(),
+
+		C89				=> CLK_STDC89(),
+		C94				=> CLK_STDC94(),
+		C99				=> CLK_STDC99(),
+
+		GNUC			=> CLK_GNUC99(),
+		GNUC89			=> CLK_GNUC89(),
+		GNUC99			=> CLK_GNUC99(),
+
+		STDC			=> CLK_STDC99(),
+		STDC89			=> CLK_STDC89(),
+		STDC94			=> CLK_STDC94(),
+		STDC99			=> CLK_STDC99(),
+
+		'C++'			=> CLK_GNUCXX(),
+		'C++98'			=> CLK_CXX98(),
+		'GNUC++'		=> CLK_GNUCXX(),
+
+		ASM				=> CLK_ASM(),
+		ASSEMBLER		=> CLK_ASM(),
+		ASSEMBLY		=> CLK_ASM(),
+
+		CLK_GNUC89()	=> CLK_GNUC89(),
+		CLK_GNUC99()	=> CLK_GNUC99(),
+		CLK_STDC89()	=> CLK_STDC89(),
+		CLK_STDC94()	=> CLK_STDC94(),
+		CLK_STDC99()	=> CLK_STDC99(),
+		CLK_GNUCXX()	=> CLK_GNUCXX(),
+		CLK_CXX98()		=> CLK_CXX98(),
+		CLK_ASM()		=> CLK_ASM(),
+
+
+			);
+
 sub new {
 	my $class = shift;
 	my $self = ($#_ == 0) ? { %{ (shift) } } : { @_ };
+
+	if (exists $self->{Language}) {
+		my $language = $LANGUAGE{$self->{Language}};
+		unless ($language) {
+			my @languages = keys %LANGUAGE;
+			push(@languages, grep { /^CLK_/ } @EXPORT_OK);
+			die "Invalid language $self->{Language}. " .
+							"Try one of @languages";
+		}
+		$self->{Language} = $language;
+	}
+
 	my $language = (exists $self->{Language})
 					? $self->{Language}
 					: CLK_GNUC99();
@@ -147,6 +196,34 @@ Deal with some brokennesses of MSDOS. Untested.
 
 =item NoWarnings (-w): boolean
 
+=item IncludePrefix (-iprefix): string
+
+=item SysRoot (-isysroot): string
+
+=item Include (-include): array of strings
+
+Include the specified files before reading the main file to be
+processed.
+
+=item IncludeMacros (-imacros): array of strings
+
+Include the specified files before reading the main file to be
+processed. Output from preprocessing these files is discarded. Files
+specified by IncludeMacros are processed before files specified
+by Include.
+
+=item IncludePath (-I): array of strings
+
+This include path is searched first.
+
+=item SystemIncludePath (-isystem): array of strings
+
+Specify the standard system include path, searched second.
+
+=item AfterIncludePath (-idirafter): array of strings
+
+This include path is searched after the system include path.
+
 =back
 
 =item Builtins
@@ -212,29 +289,13 @@ The following options are not yet handled.
 
 =item -M*
 
-=item -x
+=item -D/-U
 
 =item -std
 
 =item -ansi
 
-=item -include
-
-=item -imacros
-
-=item -idirafter
-
-=item -iprefix
-
-=item -iwithprefix
-
-=item -iwithprefixbefore
-
-=item -isystem
-
 =item -foperator-names
-
-=item -fpreprocessed
 
 =item -fshow-column
 
@@ -244,6 +305,35 @@ The following options are not yet handled.
 
 Memory for hash tables, token names, etc is only freed when the reader
 is destroyed.
+
+Assertions are a deprecated feature, and thus the -A flag is not
+supported.
+
+It does not seem necessary to support the following flags:
+
+=item -x
+
+=item -iwithprefix
+
+=item -iwithprefixbefore
+
+=item -fpreprocessed
+
+=head1 TODO
+
+=item Include lists
+
+=item Dependency output
+
+=item Support remaining options
+
+=item Lots more tests
+
+=item Remaining callbacks
+
+=item Virtual file support
+
+=item Multiplicity
 
 =head1 SUPPORT
 

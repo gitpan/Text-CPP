@@ -43,6 +43,7 @@ Foundation, 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.  */
 # define INO_T_COPY(DEST, SRC) (DEST) = (SRC)
 #endif
 
+
 /* Internal structures and prototypes.  */
 
 /* A `struct pending_option' remembers one -D, -A, -U, -include, or
@@ -1488,4 +1489,50 @@ post_options (pfile)
   /* Traditional CPP does not accurately track column information.  */
   if (CPP_OPTION (pfile, traditional))
     CPP_OPTION (pfile, show_column) = 0;
+}
+
+/* Fuc tions added by Shevek to give the Perl .xs file access to
+ * some of the data structures defined in this file. */
+
+void
+cpp_append_include_chain (pfile, dir, path)
+     cpp_reader *pfile;
+     char *dir;
+     int path;
+{
+	/* This should be a boop, but saves us from exporting the
+	 * enum to the .xs file */
+	if (path == 0)
+	    path = BRACKET;
+	else if (path == 1)
+	    path = SYSTEM;
+	else if (path == 2)
+	    path = AFTER;
+	append_include_chain(pfile, dir, path, 0);
+}
+
+void
+cpp_append_include_file(pfile, arg)
+	cpp_reader *pfile;
+	char *arg;
+{
+    struct cpp_pending *pend = CPP_OPTION (pfile, pending);
+    struct pending_option *o = (struct pending_option *)
+	    xmalloc (sizeof (struct pending_option));
+    o->arg = arg;
+    o->next = NULL;
+    APPEND(pend, include, o);
+}
+
+void
+cpp_append_imacros_file(pfile, arg)
+	cpp_reader *pfile;
+	char *arg;
+{
+    struct cpp_pending *pend = CPP_OPTION (pfile, pending);
+    struct pending_option *o = (struct pending_option *)
+	    xmalloc (sizeof (struct pending_option));
+    o->arg = arg;
+    o->next = NULL;
+    APPEND(pend, imacros, o);
 }

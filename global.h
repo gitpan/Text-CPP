@@ -71,12 +71,16 @@ static inline char *xstrdup(const char *p)
 #include "safe-ctype.h"
 #include "system.h"
 
-/* This is defined in the .xs file */
+/* These are defined in the .xs file */
 struct cpp_reader;
 void cb_error(struct cpp_reader *, SV *, const char *, va_list);
 void cb_diagnostic(struct cpp_reader *reader, int code, const char*dir);
 extern SV * _sv_cpp_begin_message PARAMS ((struct cpp_reader *, int,
                                        unsigned int, unsigned int));
 
+/* These are defined at the bottom of cppinit.c */
+void cpp_append_include_chain(struct cpp_reader *, char *, int);
+void cpp_append_include_file(struct cpp_reader *, char *);
+void cpp_append_imacros_file(struct cpp_reader *, char *);
 
 #endif

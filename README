@@ -71,6 +71,26 @@ USAGE
             Trigraphs (-trigraphs): boolean
             Traditional (-traditional): boolean
             NoWarnings (-w): boolean
+            IncludePrefix (-iprefix): string
+            SysRoot (-isysroot): string
+            Include (-include): array of strings
+                Include the specified files before reading the main file to
+                be processed.
+
+            IncludeMacros (-imacros): array of strings
+                Include the specified files before reading the main file to
+                be processed. Output from preprocessing these files is
+                discarded. Files specified by IncludeMacros are processed
+                before files specified by Include.
+
+            IncludePath (-I): array of strings
+                This include path is searched first.
+
+            SystemIncludePath (-isystem): array of strings
+                Specify the standard system include path, searched second.
+
+            AfterIncludePath (-idirafter): array of strings
+                This include path is searched after the system include path.
 
         Builtins
             A hashref of predefined macros. The values must be strings or
@@ -124,24 +144,35 @@ BUGS
     The following options are not yet handled.
 
     -M*
-    -x
+    -D/-U
     -std
     -ansi
-    -include
-    -imacros
-    -idirafter
-    -iprefix
-    -iwithprefix
-    -iwithprefixbefore
-    -isystem
     -foperator-names
-    -fpreprocessed
     -fshow-column
     -ftabstop
 
 CAVEATS
     Memory for hash tables, token names, etc is only freed when the reader
     is destroyed.
+
+    Assertions are a deprecated feature, and thus the -A flag is not
+    supported.
+
+    It does not seem necessary to support the following flags:
+
+    -x
+    -iwithprefix
+    -iwithprefixbefore
+    -fpreprocessed
+
+TODO
+    Include lists
+    Dependency output
+    Support remaining options
+    Lots more tests
+    Remaining callbacks
+    Virtual file support
+    Multiplicity
 
 SUPPORT
     Mail the author at <cpan@anarres.org>
