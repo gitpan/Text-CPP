@@ -1,0 +1,45 @@
+NAME
+    Text::CPP - A full C Preprocessor in XS
+
+SYNOPSIS
+            use Text::CPP;
+            my $reader = new Text::CPP(CLK_GNUC99);
+            $reader->read("file.c");
+            while (my $token = $reader->token) {
+                    print "Token: $token\n";
+            }
+
+DESCRIPTION
+    A fast C preprocessor in XS. This does not require an external C
+    preprocessor, and will not fork() or exec() any external process.
+
+USAGE
+    Undecided.
+
+BUGS
+    Doesn't yet work.
+
+SUPPORT
+    Mail the author at <cpan@anarres.org>
+
+AUTHOR
+            Shevek
+            CPAN ID: SHEVEK
+            cpan@anarres.org
+            http://www.anarres.org/projects/
+
+COPYRIGHT
+    Copyright (c) 2002 Shevek. All rights reserved.
+
+    This program is free software; but parts of it have been borrowed from,
+    or based on, parts of the GNU C Compiler version 3.3.2. You may
+    therefore redistribute and/or modify this code under the terms of the
+    GNU GENERAL PUBLIC LICENSE, but I am unable to release this code under
+    the usual Perl license, because it includes the Artistic License.
+
+    The full text of the license can be found in the COPYING file included
+    with this module.
+
+SEE ALSO
+    perl(1).
+
