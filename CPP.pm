@@ -7,7 +7,7 @@ use Exporter;
 
 require DynaLoader;
 
-$VERSION = 0.01;
+$VERSION = 0.02;
 @ISA = qw(Exporter DynaLoader);
 @EXPORT_OK = ();
 %EXPORT_TAGS = (
@@ -34,6 +34,8 @@ Text::CPP - A full C Preprocessor in XS
 		print "Token: $token\n";
 	}
 
+	$reader->data->{MyKey} = $MyData;
+
 =head1 DESCRIPTION
 
 A fast C preprocessor in XS. This does not require an external C
@@ -43,9 +45,27 @@ preprocessor, and will not fork() or exec() any external process.
 
 Undecided.
 
+=item $reader->token
+
+Return the next available preprocessed token.
+
+=item $reader->tokens
+
+Preprocess and return a list of tokens.
+
+=item $reader->data
+
+Returns a hashref in which user data may be stored by subclasses.
+
 =head1 BUGS
 
-Doesn't yet work.
+It may not be possible to instantiate multiple Text::CPP objects,
+since the underlying library does use many global variables. This is
+yet to be tested.
+
+Memory for hash tables, etc is only freed when the reader is
+destroyed. If you create multiple readers then destroy one, this may
+free global tables and make the code fail.
 
 =head1 SUPPORT
 

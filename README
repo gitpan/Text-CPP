@@ -17,7 +17,9 @@ USAGE
     Undecided.
 
 BUGS
-    Doesn't yet work.
+    It may not be possible to instantiate multiple Text::CPP objects, since
+    the underlying library does use many global variables. This is yet to be
+    tested.
 
 SUPPORT
     Mail the author at <cpan@anarres.org>

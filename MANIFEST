@@ -48,4 +48,6 @@ symcat.h
 system.h
 t/01_use.t
 t/02_basic.t
+t/03_inherit.t
+t/04_data.t
 typemap
