@@ -21,6 +21,7 @@ struct _text_cpp {
 	unsigned int		 state;
 	SV					*user_data;
 	HV					*builtins;
+	AV					*errors;
 
 	CV					*cb_line_change;
 	CV					*cb_file_change;
@@ -41,8 +42,134 @@ static Text__CPP instance = NULL;
 
 #define EXPORT_INT(x) EXPORT_INT_AS(#x, x)
 
+/* Would this lot be better if preprocessed in pure Perl to build a
+ * standard set of option names? */
+static void
+parse_options(struct cpp_reader *reader, HV *hv)
+{
+	struct cpp_options	*opts;
+	SV					**svp;
 
-void
+	if (!hv)
+		return;
+
+	opts = cpp_get_options(reader);
+
+#define TEST_OPTION(k) (svp = hv_fetch(hv, k, strlen(k), FALSE))
+#define SET_OPTION(o, v) opts->o = (v)
+#define DO_OPTION(k, o, v) if (TEST_OPTION(k)) SET_OPTION(o, v)
+
+	DO_OPTION("DiscardComments", discard_comments, !!SvTRUE(*svp));
+		else
+	DO_OPTION("-C", discard_comments, !!SvTRUE(*svp));
+
+	DO_OPTION("DiscardCommentsInMacroExp",
+					discard_comments_in_macro_exp, !!SvTRUE(*svp));
+		else
+	DO_OPTION("-CC", discard_comments_in_macro_exp, !!SvTRUE(*svp));
+
+	DO_OPTION("PrintIncludeNames", print_include_names, !!SvTRUE(*svp));
+		else
+	DO_OPTION("-H", print_include_names, !!SvTRUE(*svp));
+
+	/* Handle deps: -M -MM -MD -MMD -MG -MP -MQ -MT */
+	DO_OPTION("NoLineCommands", no_line_commands, !!SvTRUE(*svp));
+		else
+	DO_OPTION("-P", no_line_commands, !!SvTRUE(*svp));
+
+	/* Handle: WarnAll */
+	DO_OPTION("WarnComments", warn_comments, !!SvTRUE(*svp));
+		else
+	DO_OPTION("-Wcomment", warn_comments, !!SvTRUE(*svp));
+		else
+	DO_OPTION("-Wcomments", warn_comments, !!SvTRUE(*svp));
+
+	DO_OPTION("WarnDeprecated", warn_deprecated, !!SvTRUE(*svp));
+		else
+	DO_OPTION("-Wdeprecated", warn_deprecated, !!SvTRUE(*svp));
+
+	/* Handle: WarnEndifLabels */
+
+	DO_OPTION("WarningsAreErrors", warnings_are_errors, !!SvTRUE(*svp));
+		else
+	DO_OPTION("-Werrror", warnings_are_errors, !!SvTRUE(*svp));
+
+	DO_OPTION("WarnImport", warn_import, !!SvTRUE(*svp));
+		else
+	DO_OPTION("-Wimport", warn_import, !!SvTRUE(*svp));
+
+	DO_OPTION("WarnMultichar", warn_multichar, !!SvTRUE(*svp));
+		else
+	DO_OPTION("-Wmultichar", warn_multichar, !!SvTRUE(*svp));
+
+	DO_OPTION("WarnSystemHeaders", warn_system_headers, !!SvTRUE(*svp));
+		else
+	DO_OPTION("-Wsystem-headers", warn_system_headers, !!SvTRUE(*svp));
+
+	DO_OPTION("WarnTraditional", warn_traditional, !!SvTRUE(*svp));
+		else
+	DO_OPTION("-Wtraditional", warn_traditional, !!SvTRUE(*svp));
+
+	DO_OPTION("WarnTrigraphs", warn_trigraphs, !!SvTRUE(*svp));
+		else
+	DO_OPTION("-Wtrigraphs", warn_trigraphs, !!SvTRUE(*svp));
+
+	DO_OPTION("WarnUndef", warn_undef, !!SvTRUE(*svp));
+		else
+	DO_OPTION("-Wundef", warn_undef, !!SvTRUE(*svp));
+
+	DO_OPTION("WarnUnusedMacros", warn_unused_macros, !!SvTRUE(*svp));
+		else
+	DO_OPTION("-Wunused-macros", warn_unused_macros, !!SvTRUE(*svp));
+
+	/* -foperator-names -fpreprocessed -fshow-column -ftabstop
+	 * -lang-objc */
+
+	DO_OPTION("NoStandardIncludes",
+					no_standard_includes, !!SvTRUE(*svp));
+		else
+	DO_OPTION("-nostdinc", no_standard_includes, !!SvTRUE(*svp));
+
+	DO_OPTION("NoStandardIncludes++",
+					no_standard_cplusplus_includes, !!SvTRUE(*svp));
+		else
+	DO_OPTION("-nostdincplusplus",
+					no_standard_cplusplus_includes, !!SvTRUE(*svp));
+
+	if (TEST_OPTION("PedanticErrors")||TEST_OPTION("-pedantic-errors")){
+		SET_OPTION(pedantic_errors, !!SvTRUE(*svp));
+		SET_OPTION(pedantic, !!SvTRUE(*svp));
+		SET_OPTION(warn_endif_labels, !!SvTRUE(*svp));
+	}
+	else if (TEST_OPTION("Pedantic") || TEST_OPTION("-pedantic")) {
+		SET_OPTION(pedantic, !!SvTRUE(*svp));
+		SET_OPTION(warn_endif_labels, !!SvTRUE(*svp));
+	}
+
+	DO_OPTION("Remap", remap, !!SvTRUE(*svp));
+		else
+	DO_OPTION("-remap", remap, !!SvTRUE(*svp));
+
+	DO_OPTION("Trigraphs", trigraphs, !!SvTRUE(*svp));
+		else
+	DO_OPTION("-trigraphs", trigraphs, !!SvTRUE(*svp));
+
+	DO_OPTION("Traditional", traditional, !!SvTRUE(*svp));
+		else
+	DO_OPTION("-traditional", traditional, !!SvTRUE(*svp));
+
+	DO_OPTION("NoWarnings", inhibit_warnings, !!SvTRUE(*svp));
+		else
+	DO_OPTION("-w", inhibit_warnings, !!SvTRUE(*svp));
+
+	DO_OPTION("Verbose", inhibit_warnings, !!SvTRUE(*svp));
+		else
+	DO_OPTION("-v", inhibit_warnings, !!SvTRUE(*svp));
+
+	/* -x -std -ansi -I- */
+}
+
+static void
 cb_register_builtins(struct cpp_reader *reader)
 {
 	HV		*hv;
@@ -71,6 +198,20 @@ cb_register_builtins(struct cpp_reader *reader)
 	}
 }
 
+
+void
+cb_error(const char *msgid, va_list ap)
+{
+	char	*buf;
+	char	 tmpbuf[1];
+	int		bufsiz;
+
+	/* This will not work in glibc up to 2.0.6 */
+	bufsiz = vsnprintf(tmpbuf, 1, msgid, ap);
+	buf = alloca(bufsiz + 1);
+	vsprintf(buf, msgid, ap);
+	av_push(instance->errors, newSVpvn(buf, bufsiz));
+}
 
 MODULE = Text::CPP PACKAGE = Text::CPP
 
@@ -194,13 +335,15 @@ BOOT:
 }
 
 SV *
-_create(class, lang, builtins)
+_create(class, lang, builtins, options)
 	const char *class
 	int			lang
 	HV *		builtins
-	CODE:
+	HV *		options
+	PREINIT:
 		Text__CPP				 self;
 		struct cpp_callbacks	*cb;
+	CODE:
 		if (instance)
 			croak("Please create only one Text::CPP at a time");
 		Newz(0, self, 1, struct _text_cpp);
@@ -208,8 +351,10 @@ _create(class, lang, builtins)
 		self->state = ST_INIT;
 		self->user_data = newRV_noinc((SV *)newHV());
 		self->builtins = (HV *)SvREFCNT_inc((SV *)builtins);
+		self->errors = newAV();
 		cb = cpp_get_callbacks(self->reader);
 		cb->register_builtins = cb_register_builtins;
+		parse_options(self->reader, options);
 		/* This is slightly uglier than just returning self as a
 		 * Text::CPP but does allow proper subclassing. */
 		RETVAL = newSV(0);
@@ -246,10 +391,11 @@ read(self, file)
 void
 token(self)
 	Text::CPP	self
-	PPCODE:
+	PREINIT:
 		const cpp_token	*token;
 		SV				*sv;
 		char			*text;
+	PPCODE:
 		ASSERT_READ(self);
 		token = cpp_get_token(self->reader);
 		if (token->type == CPP_EOF) {
@@ -281,7 +427,7 @@ token(self)
 			XSRETURN(1);
 		XPUSHs(sv_2mortal(newSViv(token->type)));
 		XPUSHs(sv_2mortal(newSViv(token->flags)));
-		// XSRETURN(3);
+		// XSRETURN(3);	/* Do I need this? */
 
 const char *
 type(self, type)
@@ -295,11 +441,12 @@ type(self, type)
 void
 tokens(self)
 	Text::CPP	self
-	PPCODE:
+	PREINIT:
 		const cpp_token	*token;
 		int				 wa;
 		AV				*av;
 		SV				*sv;
+	PPCODE:
 		ASSERT_READ(self);
 		wa = GIMME_V;
 		if (wa == G_SCALAR)
@@ -348,13 +495,30 @@ preprocess(self, file)
 	OUTPUT:
 		RETVAL
 
-int
+void
 errors(self)
 	Text::CPP	self
-	CODE:
-		RETVAL = cpp_errors(self->reader);
-	OUTPUT:
-		RETVAL
+	PREINIT:
+		SV **svp;
+		int	 count;
+		int	 len;
+		int	 i;
+		// dSP;
+	PPCODE:
+		if (GIMME_V != G_ARRAY) {
+			XPUSHs(sv_2mortal(newSViv(cpp_errors(self->reader))));
+			// XPUSHi(cpp_errors(self->reader));
+			XSRETURN(1);
+		}
+		count = 0;
+		len = av_len(self->errors) + 1;
+		for (i = 0; i < len; i++) {
+			if ((svp = av_fetch(self->errors, i, FALSE))) {
+				XPUSHs(sv_2mortal(SvREFCNT_inc(*svp)));
+				count++;
+			}
+		}
+		XSRETURN(count);	/* Do I need this? */
 
 void
 DESTROY(self)
@@ -364,5 +528,6 @@ DESTROY(self)
 		cpp_destroy(self->reader);
 		SvREFCNT_dec(self->user_data);
 		SvREFCNT_dec(self->builtins);
+		SvREFCNT_dec(self->errors);
 		Safefree(self);
 		instance = NULL;

@@ -117,10 +117,13 @@ _cpp_begin_message (pfile, code, line, column)
   return 1;
 }
 
+#if 0
+	/* Shevek: This is replaced by a macro in the header file now. */
 /* Don't remove the blank before do, as otherwise the exgettext
    script will mistake this as a function definition */
 #define v_message(msgid, ap) \
  do { vfprintf (stderr, msgid, ap); putc ('\n', stderr); } while (0)
+#endif
 
 /* Exported interface.  */
 

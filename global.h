@@ -1,5 +1,5 @@
-#ifndef __CONFIG_H__
-#define __CONFIG_H__
+#ifndef __TCPP_GLOBAL_H__
+#define __TCPP_GLOBAL_H__
 
 /* These control system.h */
 
@@ -13,6 +13,8 @@
 #define TIME_WITH_SYS_TIME 1
 
 /* And I've included these anyway for now. */
+
+/* I really must use "perl -MConfig" to handle these. */
 
 #include <stdlib.h>
 #include <unistd.h>
@@ -30,6 +32,11 @@
 #include <XSUB.h>
 
 #define progname "Text::CPP"
+
+/* This is defined in the .xs file */
+void cb_error(const char *msgid, va_list ap);
+/* This for cpperror.c */
+#define v_message(msgid, ap) cb_error(msgid, ap)
 
 	/* Since the gcc code is written in terms of x() functions
 	 * normally provided by libiberty, it is simple to rewrite
@@ -69,58 +76,4 @@ static inline char *xstrdup(const char *p)
 #include "safe-ctype.h"
 #include "system.h"
 
-#endif
-
-
-
-
-#if 0
-HAVE__BOOL
-HAVE_DECL_ABORT
-HAVE_DECL_ATOF
-HAVE_DECL_ATOL
-HAVE_DECL_CALLOC
-HAVE_DECL_ERRNO
-HAVE_DECL_FPRINTF_UNLOCKED
-HAVE_DECL_FPUTS_UNLOCKED
-HAVE_DECL_FREE
-HAVE_DECL_FWRITE_UNLOCKED
-HAVE_DECL_GETCWD
-HAVE_DECL_GETENV
-HAVE_DECL_GETOPT
-HAVE_DECL_GETRLIMIT
-HAVE_DECL_GETWD
-HAVE_DECL_MALLOC
-HAVE_DECL_PUTC_UNLOCKED
-HAVE_DECL_REALLOC
-HAVE_DECL_SBRK
-HAVE_DECL_SETRLIMIT
-HAVE_DECL_STRSTR
-HAVE_DESIGNATED_INITIALIZERS
-HAVE_DOS_BASED_FILE_SYSTEM
-HAVE_FCNTL_H
-HAVE_FPRINTF_UNLOCKED
-HAVE_FPUTC_UNLOCKED
-HAVE_FPUTS_UNLOCKED
-HAVE_FWRITE_UNLOCKED
-HAVE_GETRLIMIT
-HAVE_LIMITS_H
-HAVE_MALLOC_H
-HAVE_PRINTF_PTR
-HAVE_PUTC_UNLOCKED
-HAVE_SETRLIMIT
-HAVE_STDBOOL_H
-HAVE_STDDEF_H
-HAVE_STDLIB_H
-HAVE_STRING_H
-HAVE_STRINGS_H
-HAVE_STRSIGNAL
-HAVE_SYS_FILE_H
-HAVE_SYS_PARAM_H
-HAVE_SYS_STAT_H
-HAVE_SYS_TIME_H
-HAVE_SYS_WAIT_H
-HAVE_TIME_H
-HAVE_UNISTD_H
-HAVE_VOLATILE
 #endif

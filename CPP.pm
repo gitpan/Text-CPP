@@ -7,7 +7,7 @@ use Exporter;
 
 require DynaLoader;
 
-$VERSION = 0.04;
+$VERSION = 0.05;
 @ISA = qw(Exporter DynaLoader);
 @EXPORT_OK = ();
 %EXPORT_TAGS = (
@@ -22,10 +22,13 @@ sub new {
 	my $language = (exists $self->{Language})
 					? $self->{Language}
 					: CLK_GNUC99();
-	my $builtins = (ref($self->{Builtins}) eq 'HASH')
+	my $builtins = (exists $self->{Builtins})
 					? $self->{Builtins}
 					: { };
-	return Text::CPP::_create($class, $language,$builtins);
+	my $options = (exists $self->{Options})
+					? $self->{Options}
+					: { };
+	return Text::CPP::_create($class, $language, $builtins, $options);
 }
 
 =head1 NAME
@@ -93,6 +96,59 @@ be any of:
 
 =back
 
+=item Options
+
+A hashref of options for the preprocessor. Valid entries are given
+with alternative forms (from GNU cpp) in brackets.
+
+=over 4
+
+=item DiscardComments (-C): boolean
+
+=item DiscardCommentsInMacroExp (-CC): boolean
+
+=item PrintIncludeNames (-H): boolean
+
+=item NoLineCommands (-P): boolean
+
+=item WarnComments (-Wcomment -Wcomments): boolean
+
+=item WarnDeprecated (-Wdeprecated): boolean
+
+=item WarningsAreErrors (-Werror): boolean
+
+=item WarnImport (-Wimport): boolean
+
+=item WarnMultichar (-Wmultichar): boolean
+
+=item WarnSystemHeaders (-Wsystem-headers): boolean
+
+	Ignore errors in system header files.
+
+=item WarnTraditional (-Wtraditional): boolean
+
+=item WarnTrigraphs (-Wtrigraphs): boolean
+
+=item WarnUnusedMacros (-Wunused-macros): boolean
+
+=item Pedantic (-pedantic): boolean
+
+=item PedanticErrors (-pedantic-errors): boolean
+
+	Implies, and overrides, Pedantic.
+
+=item Remap (-remap): boolean
+
+	Deal with some brokennesses of MSDOS. Untested.
+
+=item Trigraphs (-trigraphs): boolean
+
+=item Traditional (-traditional): boolean
+
+=item NoWarnings (-w): boolean
+
+=back
+
 =item Builtins
 
 A hashref of predefined macros. The values must be strings or integers.
@@ -136,6 +192,45 @@ the underlying library uses many global variables.
 
 C99 may not implement variadic macros correctly according to the ISO
 standard. I must check this. If anyone knows, please tell me.
+
+Warning message prefixes are not yet recorded properly.
+
+It is not yet possible to specify a list of include directories.
+
+The code is still tied into gcc in some places. Files like prefix.c
+can be removed entirely when this is cleaned up.
+
+The following options are not yet handled.
+
+=item -M*
+
+=item -x
+
+=item -std
+
+=item -ansi
+
+=item -include
+
+=item -imacros
+
+=item -idirafter
+
+=item -iprefix
+
+=item -iwithprefix
+
+=item -iwithprefixbefore
+
+=item -isystem
+
+=item -foperator-names
+
+=item -fpreprocessed
+
+=item -fshow-column
+
+=item -ftabstop
 
 =head1 CAVEATS
 

@@ -2,9 +2,9 @@ require 5.006001;
 use ExtUtils::MakeMaker;
 
 my @hdr = qw(ansidecl.h config.h cppdefault.h cpphash.h cpplib.h
-	hashtable.h hwint.h intl.h libiberty.h line-map.h mbchar.h
-	mkdeps.h obstack.h prefix.h safe-ctype.h splay-tree.h symcat.h
-	system.h);
+	global.h hashtable.h hwint.h intl.h libiberty.h line-map.h
+	mbchar.h mkdeps.h obstack.h prefix.h safe-ctype.h splay-tree.h
+	symcat.h system.h);
 my @base = qw(CPP concat cppdefault cpperror cppexp cppfiles cpphash
 	cppinit cpplex cpplib cppmacro cppmain cpptrad hashtable hex
 	interface lbasename line-map mbchar mkdeps prefix safe-ctype
@@ -23,6 +23,7 @@ WriteMakefile(
 	C				=> \@src,
 	H				=> \@hdr,
 	OPTIMIZE		=> q[-O2 -g -Wall -DHAVE_CONFIG_H -DPREFIX='"/xxx"'],
+	clean			=> { FILES => "config.h" },
 );
 
 sub MY::postamble {
@@ -31,14 +32,16 @@ sub MY::postamble {
 	chomp($old);
 	my $new = <<'EON';
 
-.PHONY : dep readme
+.PHONY : aux dep readme
+
+aux : readme dep
 
 readme : CPP.pm
 	perldoc -t CPP.pm > README
 
 dep : $(C_FILES) $(H_FILES)
 	$(RM_F) .depend
-	$(CC) -MM $(INC) -I$(PERL_INC) $(CCFLAGS) $(C_FILES) >> .depend
+	$(CC) -MM $(INC) -isystem $(PERL_INC) $(CCFLAGS) $(C_FILES) >> .depend
 
 EON
 	return $old . $new;

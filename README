@@ -3,23 +3,138 @@ NAME
 
 SYNOPSIS
             use Text::CPP;
-            my $reader = new Text::CPP(CLK_GNUC99);
+            my $reader = new Text::CPP(
+                    Language        => CLK_GNUC99,
+                    Builtins        => {
+                            foo     => 'this',
+                            bar     => 'that',
+                    },
+            );
             $reader->read("file.c");
             while (my $token = $reader->token) {
                     print "Token: $token\n";
             }
+
+            $reader->data->{MyKey} = $MyData;
 
 DESCRIPTION
     A fast C preprocessor in XS. This does not require an external C
     preprocessor, and will not fork() or exec() any external process.
 
 USAGE
-    Undecided.
+    The following methods have been implemented, allowing the use of this
+    module as a pure C preprocessor, or as a lexer for a C, C++ or
+    Assembler-like language.
+
+    new Text::CPP(...)
+        Takes a hash or hashref with the following possible keys:
+
+        Language
+            Defines the source language to preprocess and/or tokenise. It
+            may be any of:
+
+            CLK_GNUC89 - GNU C89
+            CLK_GNUC99 - GNU C99
+            CLK_STDC89 - Standard C89
+            CLK_STDC94 - Standard C94
+            CLK_STDC99 - Standard C99
+            CLK_GNUCXX - GNU C++
+            CLK_CXX98 - Standard C++ 98
+            CLK_ASM - Assembler
+
+        Options
+            A hashref of options for the preprocessor. Valid entries are
+            given with alternative forms (from GNU cpp) in brackets.
+
+            DiscardComments (-C): boolean
+            DiscardCommentsInMacroExp (-CC): boolean
+            PrintIncludeNames (-H): boolean
+            NoLineCommands (-P): boolean
+            WarnComments (-Wcomment -Wcomments): boolean
+            WarnDeprecated (-Wdeprecated): boolean
+            WarningsAreErrors (-Werror): boolean
+            WarnImport (-Wimport): boolean
+            WarnMultichar (-Wmultichar): boolean
+            WarnSystemHeaders (-Wsystem-headers): boolean
+                        Ignore errors in system header files.
+
+            WarnTraditional (-Wtraditional): boolean
+            WarnTrigraphs (-Wtrigraphs): boolean
+            WarnUnusedMacros (-Wunused-macros): boolean
+            Pedantic (-pedantic): boolean
+            PedanticErrors (-pedantic-errors): boolean
+                        Implies, and overrides, Pedantic.
+
+            Remap (-remap): boolean
+                        Deal with some brokennesses of MSDOS. Untested.
+
+            Trigraphs (-trigraphs): boolean
+            Traditional (-traditional): boolean
+            NoWarnings (-w): boolean
+
+        Builtins
+            A hashref of predefined macros. The values must be strings or
+            integers. Macros in this hash will be defined before
+            preprocessing starts.
+
+    $text = $reader->token
+    ($text, $type, $flags) = $reader->token
+        Return the next available preprocessed token. Some tokens are not
+        stringifiable. These include tokens of type CPP_MACRO_ARG,
+        CPP_PADDING and CPP_EOF. Text::CPP returns a dummy string in the
+        'text' field for these tokens. Tokens of type CPP_EOF should never
+        actually be returned.
+
+    @tokens = $reader->tokens
+        Preprocess and return a list of tokens. This is approximately
+        equivalent to:
+
+                push(@tokens, $_) while ($_ = $reader->token);
+
+    $reader->type($type)
+        Return a human readable name for a token type, as returned by
+        $reader->token.
+
+    $reader->data
+        Returns a hashref in which user data may be stored by subclasses.
+        This hashref is created with a new Text::CPP object, and is ignored
+        for all functional purposes. The user may do with it as he wishes.
 
 BUGS
-    It may not be possible to instantiate multiple Text::CPP objects, since
-    the underlying library does use many global variables. This is yet to be
-    tested.
+    It is not possible to instantiate multiple Text::CPP objects, since the
+    underlying library uses many global variables.
+
+    C99 may not implement variadic macros correctly according to the ISO
+    standard. I must check this. If anyone knows, please tell me.
+
+    Warning message prefixes are not yet recorded properly.
+
+    It is not yet possible to specify a list of include directories.
+
+    The code is still tied into gcc in some places. Files like prefix.c can
+    be removed entirely when this is cleaned up.
+
+    The following options are not yet handled.
+
+    -M*
+    -x
+    -std
+    -ansi
+    -include
+    -imacros
+    -idirafter
+    -iprefix
+    -iwithprefix
+    -iwithprefixbefore
+    -isystem
+    -foperator-names
+    -fpreprocessed
+    -fshow-column
+    -ftabstop
+
+CAVEATS
+    Memory for hash tables, token names, etc is only freed when the reader
+    is destroyed.
 
 SUPPORT
     Mail the author at <cpan@anarres.org>
@@ -36,8 +151,9 @@ COPYRIGHT
     This program is free software; but parts of it have been borrowed from,
     or based on, parts of the GNU C Compiler version 3.3.2. You may
     therefore redistribute and/or modify this code under the terms of the
-    GNU GENERAL PUBLIC LICENSE, but I am unable to release this code under
-    the usual Perl license, because it includes the Artistic License.
+    GNU GENERAL PUBLIC LICENSE. I am unable to release this code under the
+    usual Perl license because that license includes the Artistic License,
+    and I cannot rerelease GPL code under the Artistic License. Sorry.
 
     The full text of the license can be found in the COPYING file included
     with this module.
