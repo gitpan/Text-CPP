@@ -7,7 +7,7 @@ use Exporter;
 
 require DynaLoader;
 
-$VERSION = 0.05;
+$VERSION = 0.06;
 @ISA = qw(Exporter DynaLoader);
 @EXPORT_OK = ();
 %EXPORT_TAGS = (
@@ -123,7 +123,7 @@ with alternative forms (from GNU cpp) in brackets.
 
 =item WarnSystemHeaders (-Wsystem-headers): boolean
 
-	Ignore errors in system header files.
+Ignore errors in system header files.
 
 =item WarnTraditional (-Wtraditional): boolean
 
@@ -135,11 +135,11 @@ with alternative forms (from GNU cpp) in brackets.
 
 =item PedanticErrors (-pedantic-errors): boolean
 
-	Implies, and overrides, Pedantic.
+Implies, and overrides, Pedantic.
 
 =item Remap (-remap): boolean
 
-	Deal with some brokennesses of MSDOS. Untested.
+Deal with some brokennesses of MSDOS. Untested.
 
 =item Trigraphs (-trigraphs): boolean
 
@@ -183,17 +183,25 @@ Returns a hashref in which user data may be stored by subclasses.
 This hashref is created with a new Text::CPP object, and is ignored
 for all functional purposes. The user may do with it as he wishes.
 
+=item $reader->errors
+
+In scalar context, returns the fatal error count. In list context,
+returns a list of warnings and errors encountered by the preprocessor.
+Thus scalar(@errors) >= $errors, since @errors will also contain
+the warnings.
+
 =back
 
 =head1 BUGS
+
+This documentation is incomplete. There are many important functions
+in the source which are not yet documented.
 
 It is not possible to instantiate multiple Text::CPP objects, since
 the underlying library uses many global variables.
 
 C99 may not implement variadic macros correctly according to the ISO
 standard. I must check this. If anyone knows, please tell me.
-
-Warning message prefixes are not yet recorded properly.
 
 It is not yet possible to specify a list of include directories.
 

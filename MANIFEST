@@ -53,8 +53,10 @@ t/03_inherit.t
 t/04_data.t
 t/05_complex.t
 t/06_builtin.t
-t/07_options.t
+t/07_errors.t
+t/08_options.t
 t/builtin0.c
 t/complex0.c
+t/errors0.c
 t/options0.c
 typemap

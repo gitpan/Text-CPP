@@ -5,6 +5,9 @@
    Based on CCCP program by Paul Rubin, June 1986
    Adapted to ANSI C, Richard Stallman, Jan 1987
 
+This file modified by Shevek to callback to Perl where it would
+otherwise have printed to stderr.
+
 This program is free software; you can redistribute it and/or modify it
 under the terms of the GNU General Public License as published by the
 Free Software Foundation; either version 2, or (at your option) any
@@ -111,7 +114,7 @@ static uchar *dequote_string	PARAMS ((cpp_reader *, const uchar *,
 					 unsigned int));
 static int  strtoul_for_line	PARAMS ((const uchar *, unsigned int,
 					 unsigned long *));
-static void do_diagnostic	PARAMS ((cpp_reader *, int, int));
+// static void do_diagnostic	PARAMS ((cpp_reader *, int, int));
 static cpp_hashnode *lex_macro_node	PARAMS ((cpp_reader *));
 static void do_include_common	PARAMS ((cpp_reader *, enum include_type));
 static struct pragma_entry *lookup_pragma_entry
@@ -927,6 +930,8 @@ _cpp_do_file_change (pfile, reason, to_file, file_line, sysp)
     (*pfile->cb.file_change) (pfile, pfile->map);
 }
 
+/* Shevek: This isn't called any more - we use the Perl callbacks. */
+#if 0
 /* Report a warning or error detected by the program we are
    processing.  Use the directive's tokens in the error message.  */
 static void
@@ -940,18 +945,21 @@ do_diagnostic (pfile, code, print_dir)
 			  pfile->cur_token[-1].col))
     {
       if (print_dir)
-	fprintf (stderr, "#%s ", pfile->directive->name);
+      	fprintf(stderr, "#%s ", pfile->directive->name);
       pfile->state.prevent_expansion++;
       cpp_output_line (pfile, stderr);
       pfile->state.prevent_expansion--;
     }
 }
+#endif
 
 static void
 do_error (pfile)
      cpp_reader *pfile;
 {
-  do_diagnostic (pfile, DL_ERROR, 1);
+	/* Shevek: Change this function to call into Perl */
+  // do_diagnostic (pfile, DL_ERROR, 1);
+  cb_diagnostic(pfile, DL_ERROR, pfile->directive->name);
 }
 
 static void
@@ -959,7 +967,8 @@ do_warning (pfile)
      cpp_reader *pfile;
 {
   /* We want #warning diagnostics to be emitted in system headers too.  */
-  do_diagnostic (pfile, DL_WARNING_SYSHDR, 1);
+  // do_diagnostic (pfile, DL_WARNING_SYSHDR, 1);
+  cb_diagnostic(pfile, DL_WARNING_SYSHDR, pfile->directive->name);
 }
 
 /* Report program identification.  */
@@ -1233,7 +1242,8 @@ do_pragma_dependency (pfile)
       if (cpp_get_token (pfile)->type != CPP_EOF)
 	{
 	  _cpp_backup_tokens (pfile, 1);
-	  do_diagnostic (pfile, DL_WARNING, 0);
+	  // do_diagnostic (pfile, DL_WARNING, 0);
+	  cb_diagnostic(pfile, DL_WARNING, NULL);
 	}
     }
 }

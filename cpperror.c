@@ -1,33 +1,15 @@
 /* Default error handlers for CPP Library.
-   Copyright (C) 1986, 1987, 1989, 1992, 1993, 1994, 1995, 1998, 1999, 2000,
-   2001, 2002  Free Software Foundation, Inc.
-   Written by Per Bothner, 1994.
-   Based on CCCP program by Paul Rubin, June 1986
-   Adapted to ANSI C, Richard Stallman, Jan 1987
-
-This program is free software; you can redistribute it and/or modify it
-under the terms of the GNU General Public License as published by the
-Free Software Foundation; either version 2, or (at your option) any
-later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program; if not, write to the Free Software
-Foundation, 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
-
- In other words, you are welcome to use, share and improve this program.
- You are forbidden to forbid anyone else to use, share and improve
- what you give them.   Help stamp out software-hoarding!  */
+   Original copyright Free Software Foundation, under GPL.
+   Extracted from gcc by Shevek and rewritten to generate a Perl SV
+   instead of printing to stderr. */
 
 #include "config.h"
 #include "system.h"
 #include "cpplib.h"
 #include "cpphash.h"
 #include "intl.h"
+
+
 
 static void print_location PARAMS ((cpp_reader *, unsigned int, unsigned int));
 
@@ -64,16 +46,14 @@ print_location (pfile, line, col)
     }
 }
 
-/* Set up for a diagnostic: print the file and line, bump the error
-   counter, etc.  LINE is the logical line number; zero means to print
-   at the location of the previously lexed token, which tends to be
-   the correct place by default.  Returns 0 if the error has been
-   suppressed.  */
-int
-_cpp_begin_message (pfile, code, line, column)
+/* Hacked out of _cpp_begin_message by Shevek. This contains the common
+ * logic between the printf and the SV versions. */
+static int
+_cpp_can_begin_message (pfile, code, line, column, levelp)
      cpp_reader *pfile;
      int code;
      unsigned int line, column;
+     int *levelp;
 {
   int level = DL_EXTRACT (code);
 
@@ -108,13 +88,107 @@ _cpp_begin_message (pfile, code, line, column)
       break;
     }
 
-  print_location (pfile, line, column);
-  if (DL_WARNING_P (level))
-    fputs ("warning: ", stderr);
-  else if (level == DL_ICE)
-    fputs ("internal error: ", stderr);
-
+  *levelp = level;
   return 1;
+}
+
+/* Set up for a diagnostic: print the file and line, bump the error
+   counter, etc.  LINE is the logical line number; zero means to print
+   at the location of the previously lexed token, which tends to be
+   the correct place by default.  Returns 0 if the error has been
+   suppressed.  */
+int
+_cpp_begin_message (pfile, code, line, column)
+     cpp_reader *pfile;
+     int code;
+     unsigned int line, column;
+{
+	int	 level;
+	if (!_cpp_can_begin_message(pfile, code, line, column, &level))
+		return 0;
+	print_location (pfile, line, column);
+	if (DL_WARNING_P (level))
+		fputs (_("warning: "), stderr);
+	else if (level == DL_ICE)
+		fputs (_("internal error: "), stderr);
+	return 1;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* Print the logical file location (LINE, COL) in preparation for a
+   diagnostic.  Outputs the #include chain if it has changed.  A line
+   of zero suppresses the include stack, and outputs the program name
+   instead.  */
+static SV *
+sv_print_location (pfile, line, col)
+     cpp_reader *pfile;
+     unsigned int line, col;
+{
+  SV	*sv;
+
+  if (!pfile->buffer || line == 0)
+    sv = newSVpv("Text::CPP: ", 0);
+  else
+    {
+      const struct line_map *map;
+
+      map = lookup_line (&pfile->line_maps, line);
+      print_containing_files (&pfile->line_maps, map);
+
+      line = SOURCE_LINE (map, line);
+      if (col == 0)
+	col = 1;
+
+      if (line == 0)
+	sv = newSVpvf("%s: ", map->to_file);
+      else if (CPP_OPTION (pfile, show_column) == 0)
+	sv = newSVpvf("%s:%u: ", map->to_file, line);
+      else
+	sv = newSVpvf("%s:%u:%u: ", map->to_file, line, col);
+    }
+
+    return sv;
+}
+
+/* Set up for a diagnostic: print the file and line, bump the error
+   counter, etc.  LINE is the logical line number; zero means to print
+   at the location of the previously lexed token, which tends to be
+   the correct place by default.  Returns 0 if the error has been
+   suppressed.  */
+/* Shevek: This isn't static and is called from lots of places.
+ * Therefore, it isn't as simple as it appears to convert it to using
+ * SVs and callbacks. There is an error in do_diagnostic in cpplib.c
+ * where it has not yet been converted. I think this is something to
+ * do with the multipurposing of this function. */
+SV *
+_sv_cpp_begin_message (pfile, code, line, column)
+     cpp_reader *pfile;
+     int code;
+     unsigned int line, column;
+{
+	SV	*sv;
+	int	 level;
+
+	if (!_cpp_can_begin_message(pfile, code, line, column, &level))
+		return NULL;
+	sv = sv_print_location (pfile, line, column);
+	if (DL_WARNING_P (level))
+		sv_catpvn(sv, "warning: ", 9);
+	else if (level == DL_ICE)
+		sv_catpvn(sv, "internal error: ", 16);
+	return sv;
 }
 
 #if 0
@@ -125,6 +199,8 @@ _cpp_begin_message (pfile, code, line, column)
  do { vfprintf (stderr, msgid, ap); putc ('\n', stderr); } while (0)
 #endif
 
+#define v_message(sv, msgid, ap) cb_error(pfile, sv, msgid, ap)
+
 /* Exported interface.  */
 
 /* Print an error at the location of the previously lexed token.  */
@@ -132,6 +208,7 @@ void
 cpp_error VPARAMS ((cpp_reader * pfile, int level, const char *msgid, ...))
 {
   unsigned int line, column;
+  SV		*sv;
 
   VA_OPEN (ap, msgid);
   VA_FIXEDARG (ap, cpp_reader *, pfile);
@@ -157,8 +234,8 @@ cpp_error VPARAMS ((cpp_reader * pfile, int level, const char *msgid, ...))
   else
     line = column = 0;
 
-  if (_cpp_begin_message (pfile, level, line, column))
-    v_message (msgid, ap);
+  if ((sv = _sv_cpp_begin_message (pfile, level, line, column)))
+    v_message (sv, msgid, ap);
 
   VA_CLOSE (ap);
 }
@@ -169,6 +246,7 @@ cpp_error_with_line VPARAMS ((cpp_reader *pfile, int level,
 			      unsigned int line, unsigned int column,
 			      const char *msgid, ...))
 {
+	SV	*sv;
   VA_OPEN (ap, msgid);
   VA_FIXEDARG (ap, cpp_reader *, pfile);
   VA_FIXEDARG (ap, int, level);
@@ -176,8 +254,8 @@ cpp_error_with_line VPARAMS ((cpp_reader *pfile, int level,
   VA_FIXEDARG (ap, unsigned int, column);
   VA_FIXEDARG (ap, const char *, msgid);
 
-  if (_cpp_begin_message (pfile, level, line, column))
-    v_message (msgid, ap);
+  if ((sv = _sv_cpp_begin_message (pfile, level, line, column)))
+    v_message (sv, msgid, ap);
 
   VA_CLOSE (ap);
 }

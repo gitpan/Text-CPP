@@ -4,6 +4,7 @@
 #include "config.h"
 #include "system.h"
 #include "cpplib.h"
+#include "cpphash.h"
 
 #define ST_INIT		0
 #define ST_READ		1
@@ -200,17 +201,51 @@ cb_register_builtins(struct cpp_reader *reader)
 
 
 void
-cb_error(const char *msgid, va_list ap)
+cb_error(cpp_reader *reader, SV *sv, const char *msgid, va_list ap)
 {
 	char	*buf;
 	char	 tmpbuf[1];
-	int		bufsiz;
+	int		 bufsiz;
 
 	/* This will not work in glibc up to 2.0.6 */
 	bufsiz = vsnprintf(tmpbuf, 1, msgid, ap);
 	buf = alloca(bufsiz + 1);
 	vsprintf(buf, msgid, ap);
-	av_push(instance->errors, newSVpvn(buf, bufsiz));
+	sv_catpvn(sv, buf, bufsiz);
+	av_push(instance->errors, sv);
+}
+
+/* Copied from do_diagnostic() in cpplib.c */
+void
+cb_diagnostic(struct cpp_reader *reader, int code, const char *dir)
+{
+	const cpp_token	*token;
+	SV				*sv;
+	int				 len;
+	char			*buf;
+	char			*end;
+
+	if ((sv = _sv_cpp_begin_message(reader, code,
+					reader->cur_token[-1].line,
+					reader->cur_token[-1].col))) {
+		if (dir)
+			sv_catpvf(sv, "#%s ", dir);
+		reader->state.prevent_expansion++;
+		token = cpp_get_token(reader);
+		while (token->type != CPP_EOF) {
+			len = cpp_token_len(token);
+			buf = alloca(len);
+			end = cpp_spell_token(reader, token, buf);
+			end[0] = '\0';
+			sv_catpvn(sv, buf, (end - buf));
+			token = cpp_get_token(reader);
+			if (token->flags & PREV_WHITE)
+				sv_catpvn(sv, " ", 1);
+		}
+		reader->state.prevent_expansion--;
+	}
+
+	av_push(instance->errors, sv);
 }
 
 MODULE = Text::CPP PACKAGE = Text::CPP

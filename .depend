@@ -1,5 +1,6 @@
 CPP.o: CPP.c config.h global.h ansidecl.h safe-ctype.h system.h hwint.h \
-  libiberty.h symcat.h cpplib.h hashtable.h obstack.h line-map.h
+  libiberty.h symcat.h cpplib.h hashtable.h obstack.h line-map.h \
+  cpphash.h
 concat.o: concat.c ansidecl.h libiberty.h
 cppdefault.o: cppdefault.c config.h global.h ansidecl.h safe-ctype.h \
   system.h hwint.h libiberty.h symcat.h cppdefault.h

@@ -33,11 +33,6 @@
 
 #define progname "Text::CPP"
 
-/* This is defined in the .xs file */
-void cb_error(const char *msgid, va_list ap);
-/* This for cpperror.c */
-#define v_message(msgid, ap) cb_error(msgid, ap)
-
 	/* Since the gcc code is written in terms of x() functions
 	 * normally provided by libiberty, it is simple to rewrite
 	 * in terms of Perl. Unfortunately I looked at the definition
@@ -75,5 +70,13 @@ static inline char *xstrdup(const char *p)
 
 #include "safe-ctype.h"
 #include "system.h"
+
+/* This is defined in the .xs file */
+struct cpp_reader;
+void cb_error(struct cpp_reader *, SV *, const char *, va_list);
+void cb_diagnostic(struct cpp_reader *reader, int code, const char*dir);
+extern SV * _sv_cpp_begin_message PARAMS ((struct cpp_reader *, int,
+                                       unsigned int, unsigned int));
+
 
 #endif
