@@ -7,7 +7,7 @@ use Exporter;
 
 require DynaLoader;
 
-$VERSION = 0.08;
+$VERSION = 0.09;
 @ISA = qw(Exporter DynaLoader);
 @EXPORT_OK = ();
 %EXPORT_TAGS = (
@@ -152,6 +152,12 @@ with alternative forms (from GNU cpp) in brackets.
 
 =over 4
 
+=item Define (-D): array of strings
+
+Strings should be of the form NAME=VALUE.
+
+=item Undef (-U): array of strings
+
 =item DiscardComments (-C): boolean
 
 =item DiscardCommentsInMacroExp (-CC): boolean
@@ -288,8 +294,6 @@ can be removed entirely when this is cleaned up.
 The following options are not yet handled.
 
 =item -M*
-
-=item -D/-U
 
 =item -std
 

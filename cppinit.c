@@ -48,11 +48,12 @@ Foundation, 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.  */
 
 /* A `struct pending_option' remembers one -D, -A, -U, -include, or
    -imacros switch.  */
-typedef void (* cl_directive_handler) PARAMS ((cpp_reader *, const char *));
+/* Shevek: typedef moved to global.h */
+// typedef void (* cl_directive_handler) PARAMS ((cpp_reader *, const char *));
 struct pending_option
 {
   struct pending_option *next;
-  const char *arg;
+  char *arg;	/* Shevek: These are now in the heap */
   cl_directive_handler handler;
 };
 
@@ -109,9 +110,9 @@ static void free_chain			PARAMS ((struct pending_option *));
 static void init_standard_includes	PARAMS ((cpp_reader *));
 static void read_original_filename	PARAMS ((cpp_reader *));
 static void new_pending_directive	PARAMS ((struct cpp_pending *,
-						 const char *,
+						 char *,
 						 cl_directive_handler));
-static int parse_option			PARAMS ((const char *));
+// static int parse_option			PARAMS ((const char *));
 static void post_options		PARAMS ((cpp_reader *));
 
 /* Fourth argument to append_include_chain: chain to use.
@@ -754,15 +755,18 @@ init_builtins (pfile)
 }
 
 /* And another subroutine.  This one sets up the standard include path.  */
+/* Shevek: hacked this rather a lot to remove gcc-isms. */
 static void
 init_standard_includes (pfile)
      cpp_reader *pfile;
 {
   char *path;
   const struct default_include *p;
+#if 0	/* Shevek: unused */
   const char *specd_prefix = CPP_OPTION (pfile, include_prefix);
   int default_len, specd_len;
   char *default_prefix;
+#endif
 
   /* Several environment variables may add to the include search path.
      CPATH specifies an additional list of directories to be searched
@@ -792,6 +796,7 @@ init_standard_includes (pfile)
   if (path != 0 && *path != 0)
     path_include (pfile, path, SYSTEM);
 
+#if 0
   /* Search "translated" versions of GNU directories.
      These have /usr/local/lib/gcc... replaced by specd_prefix.  */
   default_len = 0;
@@ -841,6 +846,7 @@ init_standard_includes (pfile)
 	    }
 	}
     }
+#endif
 
   for (p = cpp_include_defaults; p->fname; p++)
     {
@@ -856,7 +862,8 @@ init_standard_includes (pfile)
 	    str = concat (CPP_OPTION (pfile, sysroot), p->fname, NULL);
 
 	  else
-	    str = update_path (p->fname, p->component);
+	    str = xstrdup(p->fname);
+	    // str = update_path (p->fname, p->component);
 
 	  append_include_chain (pfile, str, SYSTEM, p->cxx_aware);
 	}
@@ -884,17 +891,18 @@ push_include (pfile, p)
 }
 
 /* Frees a pending_option chain.  */
+/* Shevek: Hacked this so that we always store strings in the heap */
 static void
 free_chain (head)
      struct pending_option *head;
 {
   struct pending_option *next;
 
-  while (head)
-    {
-      next = head->next;
-      free (head);
-      head = next;
+    while (head) {
+	next = head->next;
+	free (head->arg);
+	free (head);
+	head = next;
     }
 }
 
@@ -1167,10 +1175,11 @@ cpp_finish (pfile, deps_stream)
 }
 
 /* Add a directive to be handled later in the initialization phase.  */
+/* Shevek: No longer 'const char *' */
 static void
 new_pending_directive (pend, text, handler)
      struct cpp_pending *pend;
-     const char *text;
+     char *text;
      cl_directive_handler handler;
 {
   struct pending_option *o = (struct pending_option *)
@@ -1235,6 +1244,7 @@ static const struct cl_option cl_options[] =
 #undef DEF_OPT
 #undef COMMAND_LINE_OPTIONS
 
+#if 0	/* Shevek: gcc interface */
 /* Perform a binary search to find which, if any, option the given
    command-line matches.  Returns its index in the option array,
    negative on failure.  Complications arise since some options can be
@@ -1396,7 +1406,7 @@ cpp_handle_option (pfile, argc, argv)
 	  {
 	    struct pending_option *o = (struct pending_option *)
 	      xmalloc (sizeof (struct pending_option));
-	    o->arg = arg;
+	    o->arg = xstrdup(arg);
 	    o->next = NULL;
 
 	    if (opt_code == OPT_include)
@@ -1469,6 +1479,7 @@ cpp_handle_options (pfile, argc, argv)
 
   return i;
 }
+#endif
 
 static void
 post_options (pfile)
@@ -1497,7 +1508,7 @@ post_options (pfile)
 void
 cpp_append_include_chain (pfile, dir, path)
      cpp_reader *pfile;
-     char *dir;
+     const char *dir;
      int path;
 {
 	/* This should be a boop, but saves us from exporting the
@@ -1508,18 +1519,18 @@ cpp_append_include_chain (pfile, dir, path)
 	    path = SYSTEM;
 	else if (path == 2)
 	    path = AFTER;
-	append_include_chain(pfile, dir, path, 0);
+	append_include_chain(pfile, xstrdup(dir), path, 0);
 }
 
 void
 cpp_append_include_file(pfile, arg)
 	cpp_reader *pfile;
-	char *arg;
+	const char *arg;
 {
     struct cpp_pending *pend = CPP_OPTION (pfile, pending);
     struct pending_option *o = (struct pending_option *)
 	    xmalloc (sizeof (struct pending_option));
-    o->arg = arg;
+    o->arg = xstrdup(arg);
     o->next = NULL;
     APPEND(pend, include, o);
 }
@@ -1527,12 +1538,22 @@ cpp_append_include_file(pfile, arg)
 void
 cpp_append_imacros_file(pfile, arg)
 	cpp_reader *pfile;
-	char *arg;
+	const char *arg;
 {
     struct cpp_pending *pend = CPP_OPTION (pfile, pending);
     struct pending_option *o = (struct pending_option *)
 	    xmalloc (sizeof (struct pending_option));
-    o->arg = arg;
+    o->arg = xstrdup(arg);
     o->next = NULL;
     APPEND(pend, imacros, o);
+}
+
+void
+cpp_append_pending_directive(pfile, arg, handler)
+	cpp_reader *pfile;
+	const char *arg;
+	cl_directive_handler handler;
+{
+    struct cpp_pending *pend = CPP_OPTION (pfile, pending);
+    new_pending_directive (pend, xstrdup(arg), handler);
 }

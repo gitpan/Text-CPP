@@ -46,6 +46,10 @@ USAGE
             A hashref of options for the preprocessor. Valid entries are
             given with alternative forms (from GNU cpp) in brackets.
 
+            Define (-D): array of strings
+                Strings should be of the form NAME=VALUE.
+
+            Undef (-U): array of strings
             DiscardComments (-C): boolean
             DiscardCommentsInMacroExp (-CC): boolean
             PrintIncludeNames (-H): boolean
@@ -144,7 +148,6 @@ BUGS
     The following options are not yet handled.
 
     -M*
-    -D/-U
     -std
     -ansi
     -foperator-names

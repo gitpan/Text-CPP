@@ -7,8 +7,9 @@ my @hdr = qw(ansidecl.h config.h cppdefault.h cpphash.h cpplib.h
 	symcat.h system.h);
 my @base = qw(CPP concat cppdefault cpperror cppexp cppfiles cpphash
 	cppinit cpplex cpplib cppmacro cppmain cpptrad hashtable hex
-	interface lbasename line-map mbchar mkdeps prefix safe-ctype
+	interface lbasename line-map mbchar mkdeps safe-ctype
 	splay-tree);
+# prefix
 my @src = map { "$_.c"} @base;
 my @obj = map { "$_.o"} @base;
 

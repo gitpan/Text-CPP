@@ -105,6 +105,7 @@ vconcat_copy (dst, first, args)
   return dst;
 }
 
+#if 0	/* Shevek: Unused */
 /* @undocumented concat_length */
 
 unsigned long
@@ -151,6 +152,7 @@ concat_copy2 VPARAMS ((const char *first, ...))
 
   return libiberty_concat_ptr;
 }
+#endif	/* Shevek: Unused */
 
 char *
 concat VPARAMS ((const char *first, ...))

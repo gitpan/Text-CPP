@@ -47,7 +47,5 @@ mbchar.o: mbchar.c config.h global.h ansidecl.h safe-ctype.h system.h \
   hwint.h libiberty.h symcat.h
 mkdeps.o: mkdeps.c config.h global.h ansidecl.h safe-ctype.h system.h \
   hwint.h libiberty.h symcat.h mkdeps.h
-prefix.o: prefix.c config.h global.h ansidecl.h safe-ctype.h system.h \
-  hwint.h libiberty.h symcat.h prefix.h
 safe-ctype.o: safe-ctype.c ansidecl.h safe-ctype.h
 splay-tree.o: splay-tree.c libiberty.h ansidecl.h splay-tree.h

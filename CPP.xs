@@ -233,11 +233,26 @@ parse_options(struct cpp_reader *reader, HV *hv)
 		}
 	}
 
+	/* Macro definitions an undefinitions */
+	/* Do not handle: -A */
+
+	if (TEST_OPTION("Define") || TEST_OPTION("-D")) {
+		FOREACH_VALUE("Define/-D") {
+			cpp_append_pending_directive(reader, SvPV_nolen(*svp),
+							cpp_define);
+		}
+	}
+
+	if (TEST_OPTION("Undef") || TEST_OPTION("-U")) {
+		FOREACH_VALUE("Undef/-U") {
+			cpp_append_pending_directive(reader, SvPV_nolen(*svp),
+							cpp_undef);
+		}
+	}
+
 	/* Everything else */
 	/* Handle: -foperator-names -fpreprocessed -fshow-column
 	 * -ftabstop -lang-objc -x -std -ansi -I- */
-
-	/* -D -A -U */
 }
 
 static void

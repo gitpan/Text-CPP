@@ -74,6 +74,7 @@ const struct default_include cpp_include_defaults[]
   };
 #endif /* no INCLUDE_DEFAULTS */
 
+#if 0	/* ShevekL gcc-ism */
 #ifdef GCC_INCLUDE_DIR
 const char cpp_GCC_INCLUDE_DIR[] = GCC_INCLUDE_DIR;
 const size_t cpp_GCC_INCLUDE_DIR_len = sizeof GCC_INCLUDE_DIR - 8;
@@ -81,6 +82,7 @@ const size_t cpp_GCC_INCLUDE_DIR_len = sizeof GCC_INCLUDE_DIR - 8;
 const char cpp_GCC_INCLUDE_DIR[] = "";
 const size_t cpp_GCC_INCLUDE_DIR_len = 0;
 #endif
+#endif	/* Shevek */
 
 #ifdef TARGET_SYSTEM_ROOT
 const char *cpp_SYSROOT = TARGET_SYSTEM_ROOT;
