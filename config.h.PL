@@ -1,5 +1,5 @@
 use strict;
-use warnings;
+eval { require warnings; };
 use Config;
 
 open(OUT, ">config.h") or die "Failed to open config.h for output";

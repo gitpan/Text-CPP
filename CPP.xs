@@ -1,10 +1,17 @@
 #include <EXTERN.h>
 #include <perl.h>
 #include <XSUB.h>
+#include <patchlevel.h>	/* Include explicitly */
 #include "config.h"
 #include "system.h"
 #include "cpplib.h"
 #include "cpphash.h"
+
+#if (PATCHLEVEL < 6)
+/* This makes it compile on 5.5.2! Perhaps I can also get it to run. */
+#define SvPV_nolen(s) SvPV((s), PL_na)
+#define get_av(n, c) perl_get_av((n), (c))
+#endif
 
 #define ST_INIT		0
 #define ST_READ		1
@@ -23,6 +30,7 @@ struct _text_cpp {
 	SV					*user_data;
 	HV					*builtins;
 	AV					*errors;
+	SV					*buffer;
 
 	CV					*cb_line_change;
 	CV					*cb_file_change;

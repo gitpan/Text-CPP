@@ -1,5 +1,5 @@
 use strict;
-use warnings;
+eval { require warnings; };
 use Test::More tests => 8;
 use Text::CPP qw(:all);
 

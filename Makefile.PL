@@ -1,4 +1,5 @@
-require 5.006001;
+require 5.005002;
+use strict;
 use ExtUtils::MakeMaker;
 
 my @hdr = qw(ansidecl.h config.h cppdefault.h cpphash.h cpplib.h
@@ -7,10 +8,13 @@ my @hdr = qw(ansidecl.h config.h cppdefault.h cpphash.h cpplib.h
 	symcat.h system.h);
 my @base = qw(CPP concat cppdefault cpperror cppexp cppfiles cpphash
 	cppinit cpplex cpplib cppmacro cppmain cpptrad hashtable hex
-	interface lbasename line-map mbchar mkdeps safe-ctype
+	interface lbasename line-map mbchar mkdeps obstack safe-ctype
 	splay-tree);
 my @src = map { "$_.c"} @base;
 my @obj = map { "$_.o"} @base;
+
+# We require this or the Makefile won't reference it.
+do "typemap.PL" or die "Failed to generate typemap: $!";
 
 WriteMakefile(
 	NAME			=> 'Text::CPP',
@@ -19,11 +23,12 @@ WriteMakefile(
 	AUTHOR			=> 'Shevek <cpan@anarres.org>',
 	PREREQ_PM		=> { },
 	INC				=> "-I.",
+	TYPEMAPS		=> [ qw(typemap) ],
 	OBJECT			=> "@obj",
 	C				=> \@src,
 	H				=> \@hdr,
 	OPTIMIZE		=> q[-O0 -g -Wall -DHAVE_CONFIG_H],
-	clean			=> { FILES => "config.h" },
+	clean			=> { FILES => "config.h typemap" },
 );
 
 sub MY::postamble {
@@ -33,6 +38,8 @@ sub MY::postamble {
 	my $new = <<'EON';
 
 .PHONY : aux dep readme
+
+CPP.c : typemap
 
 aux : readme dep
 

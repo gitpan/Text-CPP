@@ -38,6 +38,7 @@ mbchar.c
 mbchar.h
 mkdeps.c
 mkdeps.h
+obstack.c
 obstack.h
 safe-ctype.c
 safe-ctype.h
@@ -64,3 +65,4 @@ t/include.h
 t/options_define.c
 t/options_simple.c
 typemap
+typemap.PL

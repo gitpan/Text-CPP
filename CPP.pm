@@ -1,13 +1,13 @@
 package Text::CPP;
 
 use strict;
-use warnings;
+eval { require warnings; };
 use vars qw($VERSION @ISA @EXPORT_OK %EXPORT_TAGS %LANGUAGE);
 use Exporter;
 
 require DynaLoader;
 
-$VERSION = "0.11";
+$VERSION = "0.12";
 @ISA = qw(Exporter DynaLoader);
 @EXPORT_OK = ();
 %EXPORT_TAGS = (

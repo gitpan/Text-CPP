@@ -1,5 +1,5 @@
 use strict;
-use warnings;
+eval { require warnings; };
 use Test::More tests => 1;
 
 BEGIN { use_ok('Text::CPP'); }
