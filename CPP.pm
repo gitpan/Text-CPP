@@ -7,7 +7,7 @@ use Exporter;
 
 require DynaLoader;
 
-$VERSION = "0.10";
+$VERSION = "0.11";
 @ISA = qw(Exporter DynaLoader);
 @EXPORT_OK = ();
 %EXPORT_TAGS = (
@@ -76,12 +76,21 @@ sub new {
 					: { };
 	my $options = (exists $self->{Options})
 					? $self->{Options}
-					: { };
+					: $self;				# Allow for laziness
 	if (exists $options->{Define}) {
 		# Convert defined macros into a canonical form.
 		if (ref($options->{Define}) eq 'HASH') {
 			my %opts = %{ $options->{Define} };
 			$options->{Define} = [ map { "$_=$opts{$_}" } keys %opts ];
+		}
+	}
+	foreach (qw(IncludePath -I
+				SystemIncludePath -isystem
+				AfterIncludePath -idirafter
+				Include -include
+				IncludeMacros -imacros)) {
+		if (exists $options->{$_} && (ref($options->{$_}) ne 'ARRAY')) {
+			$options->{$_} = [ $options->{$_} ];
 		}
 	}
 
@@ -215,7 +224,7 @@ Deal with some brokennesses of MSDOS. Untested.
 
 =item IncludePrefix (-iprefix): string
 
-=item SysRoot (-isysroot): string
+=item SystemRoot (-isysroot): string
 
 =item Include (-include): array of strings
 

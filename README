@@ -79,7 +79,7 @@ USAGE
             Traditional (-traditional): boolean
             NoWarnings (-w): boolean
             IncludePrefix (-iprefix): string
-            SysRoot (-isysroot): string
+            SystemRoot (-isysroot): string
             Include (-include): array of strings
                 Include the specified files before reading the main file to
                 be processed.

@@ -196,7 +196,7 @@ parse_options(struct cpp_reader *reader, HV *hv)
 		SET_OPTION(include_prefix_len, slen);
 	}
 
-	if (TEST_OPTION("SysRoot") || TEST_OPTION("-isysroot")) {
+	if (TEST_OPTION("SystemRoot") || TEST_OPTION("-isysroot")) {
 		SET_OPTION(sysroot, SvPV_nolen(*svp));
 	}
 
@@ -222,7 +222,7 @@ parse_options(struct cpp_reader *reader, HV *hv)
 	}
 
 	if (TEST_OPTION("Include") || TEST_OPTION("-include")) {
-		FOREACH_VALUE("PreInclude/-include") {
+		FOREACH_VALUE("Include/-include") {
 			cpp_append_include_file(reader, SvPV_nolen(*svp));
 		}
 	}
@@ -537,10 +537,10 @@ token(self)
 				text = "<MACRO_ARG>";
 				break;
 			case CPP_PADDING:
-				/* NOTREACHED */
 				text = "<PADDING>";
 				break;
 			default:
+				/* I should use cpp_spell_token into an allocated SV. */
 				text = cpp_token_as_text(self->reader, token);
 				break;
 		}

@@ -22,7 +22,7 @@ WriteMakefile(
 	OBJECT			=> "@obj",
 	C				=> \@src,
 	H				=> \@hdr,
-	OPTIMIZE		=> q[-O2 -g -Wall -DHAVE_CONFIG_H],
+	OPTIMIZE		=> q[-O0 -g -Wall -DHAVE_CONFIG_H],
 	clean			=> { FILES => "config.h" },
 );
 
