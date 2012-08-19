@@ -7,7 +7,7 @@ use Exporter;
 
 require DynaLoader;
 
-$VERSION = "0.14";
+$VERSION = "0.15";
 @ISA = qw(Exporter DynaLoader);
 @EXPORT_OK = ();
 %EXPORT_TAGS = (

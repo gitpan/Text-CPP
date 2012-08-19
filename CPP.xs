@@ -382,15 +382,19 @@ cb_error(cpp_reader *reader, SV *sv, const char *msgid, va_list ap)
 	char	*buf;
 	char	 tmpbuf[1];
 	int		 bufsiz;
-	va_list	 apsiz;
+	va_list	 aplocal;
 
 	/* This will not work in glibc up to 2.0.6 */
-	va_copy(apsiz, ap);
-	bufsiz = vsnprintf(tmpbuf, 1, msgid, apsiz);
-	printf("Bufsiz is %d\n", bufsiz);
+	va_copy(aplocal, ap);
+	bufsiz = vsnprintf(tmpbuf, 1, msgid, aplocal);
+	va_end(aplocal);
+
 	buf = alloca(bufsiz + 1);
-	printf("Buffer is %p\n", buf);
-	vsprintf(buf, msgid, ap);
+
+	va_copy(aplocal, ap);
+	vsprintf(buf, msgid, aplocal);
+	va_end(aplocal);
+
 	sv_catpvn(sv, buf, bufsiz);
 	av_push(TEXT_CPP(reader)->errors, sv);
 }
