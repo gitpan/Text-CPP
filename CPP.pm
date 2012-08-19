@@ -7,7 +7,7 @@ use Exporter;
 
 require DynaLoader;
 
-$VERSION = "0.12";
+$VERSION = "0.14";
 @ISA = qw(Exporter DynaLoader);
 @EXPORT_OK = ();
 %EXPORT_TAGS = (
@@ -77,6 +77,9 @@ sub new {
 	my $options = (exists $self->{Options})
 					? $self->{Options}
 					: $self;				# Allow for laziness
+	my $callbacks = (exists $self->{Callbacks})
+					? $self->{Callbacks}
+					: { };
 	if (exists $options->{Define}) {
 		# Convert defined macros into a canonical form.
 		if (ref($options->{Define}) eq 'HASH') {
@@ -89,12 +92,16 @@ sub new {
 				AfterIncludePath -idirafter
 				Include -include
 				IncludeMacros -imacros)) {
+		# We promote some strings to arrays for convenience
 		if (exists $options->{$_} && (ref($options->{$_}) ne 'ARRAY')) {
 			$options->{$_} = [ $options->{$_} ];
 		}
 	}
 
-	return Text::CPP::_create($class, $language, $builtins, $options);
+	return Text::CPP::_create($class, $language,
+					$builtins,
+					$options,
+					$callbacks);
 }
 
 =head1 NAME
@@ -112,6 +119,10 @@ Text::CPP - A full C Preprocessor in XS
 		Builtins	=> {
 			foo	=> 'this',
 			bar	=> 'that',
+			...
+		},
+		Callbacks	=> {
+			...
 		},
 	);
 	$reader->read("file.c");
@@ -259,6 +270,25 @@ Macros in this hash will be defined before preprocessing starts. These
 correspond to true "builtin" macros. You should probably prefer to
 use the 'Define' option.
 
+=item Callbacks
+
+The preprocessor makes callbacks when certain events occur.
+
+=over 4
+
+=item LineChange
+
+Called when the line in the source file changes. Arguments are (XXX see
+BUGS)
+
+=item Ident
+
+=item Define
+
+=item Undef
+
+=back
+
 =back
 
 =item $text = $reader->token
@@ -267,8 +297,10 @@ use the 'Define' option.
 
 Return the next available preprocessed token. Some tokens are not
 stringifiable. These include tokens of type CPP_MACRO_ARG, CPP_PADDING
-and CPP_EOF. Text::CPP returns a dummy string in the 'text' field for
-these tokens. Tokens of type CPP_EOF should never actually be returned.
+and CPP_EOF. Text::CPP returns a dummy string in the 'text' field
+for these tokens. Tokens of type CPP_EOF should never actually be
+returned. Instead, an empty list is returned in list context, or
+undef in scalar context.
 
 =item @tokens = $reader->tokens
 
@@ -311,6 +343,8 @@ C99 may not implement variadic macros correctly according to the ISO
 standard. I must check this. If anyone knows, please tell me.
 
 The -M option is not yet handled.
+
+Callbacks are not yet fully implemented.
 
 =head1 CAVEATS
 

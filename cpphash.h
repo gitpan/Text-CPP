@@ -459,6 +459,12 @@ struct cpp_reader
   /* Used to save the original line number during traditional
      preprocessing.  */
   unsigned int saved_line;
+
+    /* Shevek: Since the library just passes around a cpp_reader *,
+     * it is sometimes useful to have a user-data structure
+     * available in callbacks. This is it. In the Text::CPP
+     * system, this stores a pointer to the Text__CPP object. */
+    void *userdata;
 };
 
 /* Character classes.  Based on the more primitive macros in safe-ctype.h.

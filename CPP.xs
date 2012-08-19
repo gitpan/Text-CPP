@@ -25,22 +25,24 @@
 
 typedef
 struct _text_cpp {
-    struct cpp_reader	*reader;
+	struct cpp_reader	*reader;
 	unsigned int		 state;
 	SV					*user_data;
 	HV					*builtins;
 	AV					*errors;
 	SV					*buffer;
 
-	CV					*cb_line_change;
-	CV					*cb_file_change;
-	CV					*cb_include;
-	CV					*cb_define;
-	CV					*cb_undef;
-	CV					*cb_ident;
-	CV					*cb_def_pragma;
-	CV					*cb_register_builtins;
+	SV					*cb_line_change;
+	SV					*cb_file_change;
+	SV					*cb_include;
+	SV					*cb_define;
+	SV					*cb_undef;
+	SV					*cb_ident;
+	SV					*cb_def_pragma;
+	SV					*cb_register_builtins;
 } *Text__CPP;
+
+#define TEXT_CPP(x) ((Text__CPP)((x)->userdata))
 
 static Text__CPP instance = NULL;
 
@@ -50,6 +52,86 @@ static Text__CPP instance = NULL;
 					} while(0)
 
 #define EXPORT_INT(x) EXPORT_INT_AS(#x, x)
+
+static void
+cb_line_change(struct cpp_reader *reader,
+				const cpp_token *token,
+				int passing_args)
+{
+	Text__CPP	 self;
+	dSP;
+
+	self = TEXT_CPP(reader);
+	if (!self->cb_line_change)
+		return;
+	PUSHMARK(SP);
+	// XPUSHs(self);	/* Keep a pointer to 'self' around. */
+	call_sv(self->cb_line_change, G_DISCARD);
+}
+
+static void
+cb_define(struct cpp_reader *reader,
+		unsigned int line,
+		cpp_hashnode *node)
+{
+	Text__CPP	 self;
+
+	self = TEXT_CPP(reader);
+	if (!self->cb_define)
+		return;
+}
+
+static void
+cb_undef(struct cpp_reader *reader,
+		unsigned int line,
+		cpp_hashnode *node)
+{
+	Text__CPP	 self;
+
+	self = TEXT_CPP(reader);
+	if (!self->cb_undef)
+		return;
+}
+
+static void
+cb_ident(struct cpp_reader *reader,
+		unsigned int line,
+		const cpp_string * str)
+{
+	Text__CPP	 self;
+
+	self = TEXT_CPP(reader);
+	if (!self->cb_ident)
+		return;
+}
+
+static void
+setup_callbacks(struct cpp_reader *reader, HV *hv)
+{
+	Text__CPP		  self;
+	cpp_callbacks	 *cb;
+	SV				**svp;
+
+#define LOOKUP_CALLBACK(k) (svp = hv_fetch(hv, k, strlen(k), FALSE))
+#define VALID_CALLBACK (SvROK(*svp) && SvTYPE(SvRV(*svp)) == SVt_PVCV)
+#define DO_CALLBACK(k, n) \
+		cb->n = cb_ ## n; /* Set this unconditionally */ \
+		if (LOOKUP_CALLBACK(k)) { \
+			if (!(VALID_CALLBACK)) \
+				croak("Callback " k " not subref"); \
+			else { \
+				self->cb_ ## n = *svp; \
+			} \
+		}
+
+	self = TEXT_CPP(reader);
+	cb = cpp_get_callbacks(reader);
+
+	DO_CALLBACK("LineChange", line_change);
+	DO_CALLBACK("Define", define);
+	DO_CALLBACK("Undef", undef);
+	DO_CALLBACK("Ident", ident);
+}
 
 /* Would this lot be better if preprocessed in pure Perl to build a
  * standard set of option names? */
@@ -274,7 +356,7 @@ cb_register_builtins(struct cpp_reader *reader)
 	SV		*sv;
 	char	*buf;
 
-	hv = instance->builtins;		/* We use 'instance' */
+	hv = TEXT_CPP(reader)->builtins;
 	if (!hv)
 		return;
 
@@ -300,13 +382,17 @@ cb_error(cpp_reader *reader, SV *sv, const char *msgid, va_list ap)
 	char	*buf;
 	char	 tmpbuf[1];
 	int		 bufsiz;
+	va_list	 apsiz;
 
 	/* This will not work in glibc up to 2.0.6 */
-	bufsiz = vsnprintf(tmpbuf, 1, msgid, ap);
+	va_copy(apsiz, ap);
+	bufsiz = vsnprintf(tmpbuf, 1, msgid, apsiz);
+	printf("Bufsiz is %d\n", bufsiz);
 	buf = alloca(bufsiz + 1);
+	printf("Buffer is %p\n", buf);
 	vsprintf(buf, msgid, ap);
 	sv_catpvn(sv, buf, bufsiz);
-	av_push(instance->errors, sv);
+	av_push(TEXT_CPP(reader)->errors, sv);
 }
 
 /* Copied from do_diagnostic() in cpplib.c */
@@ -339,7 +425,7 @@ cb_diagnostic(struct cpp_reader *reader, int code, const char *dir)
 		reader->state.prevent_expansion--;
 	}
 
-	av_push(instance->errors, sv);
+	av_push(TEXT_CPP(reader)->errors, sv);
 }
 
 MODULE = Text::CPP PACKAGE = Text::CPP
@@ -464,11 +550,12 @@ BOOT:
 }
 
 SV *
-_create(class, lang, builtins, options)
+_create(class, lang, builtins, options, callbacks)
 	const char *class
 	int			lang
 	HV *		builtins
 	HV *		options
+	HV *		callbacks
 	PREINIT:
 		Text__CPP				 self;
 		struct cpp_callbacks	*cb;
@@ -477,6 +564,7 @@ _create(class, lang, builtins, options)
 			croak("Please create only one Text::CPP at a time");
 		Newz(0, self, 1, struct _text_cpp);
 		self->reader = cpp_create_reader(lang);
+		self->reader->userdata = self;
 		self->state = ST_INIT;
 		self->user_data = newRV_noinc((SV *)newHV());
 		self->builtins = (HV *)SvREFCNT_inc((SV *)builtins);
@@ -484,6 +572,7 @@ _create(class, lang, builtins, options)
 		cb = cpp_get_callbacks(self->reader);
 		cb->register_builtins = cb_register_builtins;
 		parse_options(self->reader, options);
+		setup_callbacks(self->reader, callbacks);	/* Change the NULL! */
 		/* This is slightly uglier than just returning self as a
 		 * Text::CPP but does allow proper subclassing. */
 		RETVAL = newSV(0);

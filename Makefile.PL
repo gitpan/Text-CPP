@@ -1,6 +1,8 @@
 require 5.005002;
 use strict;
+eval { require warnings; };
 use ExtUtils::MakeMaker;
+use Config;
 
 my @hdr = qw(ansidecl.h config.h cppdefault.h cpphash.h cpplib.h
 	global.h hashtable.h hwint.h intl.h libiberty.h line-map.h
@@ -16,6 +18,9 @@ my @obj = map { "$_.o"} @base;
 # We require this or the Makefile won't reference it.
 do "typemap.PL" or die "Failed to generate typemap: $!";
 
+my $cflags = q[-DHAVE_CONFIG_H];
+$cflags .= q[ -Wall -g -O0] if -d 'old';	# Maintainer/gcc stuff
+
 WriteMakefile(
 	NAME			=> 'Text::CPP',
 	VERSION_FROM	=> 'CPP.pm',
@@ -27,7 +32,7 @@ WriteMakefile(
 	OBJECT			=> "@obj",
 	C				=> \@src,
 	H				=> \@hdr,
-	OPTIMIZE		=> q[-O0 -g -Wall -DHAVE_CONFIG_H],
+	OPTIMIZE		=> $cflags,
 	clean			=> { FILES => "config.h typemap" },
 );
 

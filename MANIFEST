@@ -64,5 +64,4 @@ t/include.c
 t/include.h
 t/options_define.c
 t/options_simple.c
-typemap
-typemap.PL
+META.yml                                 Module meta-data (added by MakeMaker)

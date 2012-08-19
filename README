@@ -11,6 +11,10 @@ SYNOPSIS
                     Builtins        => {
                             foo     => 'this',
                             bar     => 'that',
+                            ...
+                    },
+                    Callbacks       => {
+                            ...
                     },
             );
             $reader->read("file.c");
@@ -105,13 +109,25 @@ USAGE
             preprocessing starts. These correspond to true "builtin" macros.
             You should probably prefer to use the 'Define' option.
 
+        Callbacks
+            The preprocessor makes callbacks when certain events occur.
+
+            LineChange
+                Called when the line in the source file changes. Arguments
+                are (XXX see BUGS)
+
+            Ident
+            Define
+            Undef
+
     $text = $reader->token
     ($text, $type, $flags) = $reader->token
         Return the next available preprocessed token. Some tokens are not
         stringifiable. These include tokens of type CPP_MACRO_ARG,
         CPP_PADDING and CPP_EOF. Text::CPP returns a dummy string in the
         'text' field for these tokens. Tokens of type CPP_EOF should never
-        actually be returned.
+        actually be returned. Instead, an empty list is returned in list
+        context, or undef in scalar context.
 
     @tokens = $reader->tokens
         Preprocess and return a list of tokens. This is approximately
@@ -147,6 +163,8 @@ BUGS
     standard. I must check this. If anyone knows, please tell me.
 
     The -M option is not yet handled.
+
+    Callbacks are not yet fully implemented.
 
 CAVEATS
     Memory for hash tables, token names, etc is only freed when the reader
